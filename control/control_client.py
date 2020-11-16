@@ -1,4 +1,4 @@
-import socket, select, string, sys, py_compile
+import socket, select, string, sys, py_compile, os
 from ftplib import FTP
 
 def does_compile(filename):
@@ -9,6 +9,23 @@ def does_compile(filename):
         except py_compile.PyCompileError:
                 print("PROGRAM DOES NOT COMPILE!")
                 return False
+
+def get_results(task_dir,s):
+        parent_dir = os.getcwd()
+        path = os.path.join(parent_dir, task_dir)
+        os.mkdir(path)
+        ftp = FTP('')
+        ftp.connect('localhost',1026)
+        ftp.login()
+        ftp.cwd(task_dir)
+        for file_name in ftp.nlst():
+                localfile = open(task_dir+"/"+file_name, 'wb')
+                ftp.retrbinary('RETR ' + file_name, localfile.write, 1024)
+        ftp.quit()
+        localfile.close()
+        print('FINISHED EXECUTION OF',data.decode()[4:])
+        s.send(str.encode("FINISH"+task_dir))
+
 
 def send_file(sub_file):
         print('====',sub_file)
@@ -80,6 +97,8 @@ if __name__ == "__main__":
                                 elif (data.decode().startswith('a')):
                                         sys.stdout.write(data.decode()[1:])
                                         prompt()
+                                elif data.decode().startswith('DONE'):
+                                        get_results(data.decode()[4:],s)
                                 else :
                                         #print data
                                         sys.stdout.write(data.decode())

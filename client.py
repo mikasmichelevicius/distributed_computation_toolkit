@@ -20,8 +20,6 @@ def results_to_server(task_dir, filename):
                 # filename = task_dir+"/"+result_files[x]
                 filename = result_files[x]
                 ftp.storbinary('STOR '+filename, open(task_dir+"/"+filename, 'rb'))
-        #filename = sub_file
-        #filename = 'task_example.py' #replace with your file in your home folder
         ftp.quit()
         shutil.rmtree(task_dir)
 
@@ -39,7 +37,7 @@ def get_file(filename,task_dir):
         ftp.quit()
         localfile.close()
 
-def execute_task(submit_msg):
+def execute_task(submit_msg,s):
         task_dir = submit_msg[:5]
         task_no = int(submit_msg[4])
         filename = submit_msg[5:]
@@ -58,6 +56,9 @@ def execute_task(submit_msg):
                 err_file.write(err.decode())
         err_file.close()
         results_to_server(task_dir, filename)
+        print('RESPONDING TO SERVER ABOUT COMPLETION')
+        resp_mesg = "DONE"+task_dir
+        print(s.send(str.encode(resp_mesg)))
 
 
 def return_stats(s):
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
                                 elif data.decode().startswith('TASK'):
                                         print('ATEJO CIA', data.decode())
-                                        execute_task(data.decode())
+                                        execute_task(data.decode(),s)
 
 
                                 else :

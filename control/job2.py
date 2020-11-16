@@ -1,6 +1,6 @@
 import time
 
-strs = "EXECUTING TASK2"
+strs = "EXECUTING JOB2"
 
 for x in range(len(strs)):
     time.sleep(0.5)

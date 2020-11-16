@@ -1,7 +1,15 @@
 import socket, select, os, shutil
 
-def send_to_execute (filename, sock, task_no):
+def finish_task(task_dir):
+        shutil.rmtree(task_dir)
 
+def send_results(task_dir, execution_sock):
+        busy_connections.remove(execution_sock)
+        AVAIL_CONNECTIONS.append(execution_sock)
+        control_sock.send(str.encode("DONE"+task_dir))
+
+
+def send_to_execute (filename, sock, task_no):
         directory = "TASK"+str(task_no)
         parent_dir = os.getcwd()
         path = os.path.join(parent_dir, directory)
@@ -28,7 +36,7 @@ def send_to_execute (filename, sock, task_no):
                 except:
                         addr = socket_to_execute.getpeername()
                         socket_to_execute.close()
-                        AVAIL_CONNECTIONS.remove(socket_to_execute)
+                        CONNECTIONS.remove(socket_to_execute)
                         busy_connections.remove(socket_to_execute)
                         active_addr.remove(addr)
 
@@ -36,7 +44,7 @@ def send_to_execute (filename, sock, task_no):
 #Function to broadcast chat messages to all connected clients
 def broadcast_data (sock, message):
         #Do not send the message to master socket and the client who has send us the message
-        for socket in AVAIL_CONNECTIONS:
+        for socket in CONNECTIONS:
                 if socket != server_socket and socket != sock :
                         try :
                                 socket.send(str.encode(message))
@@ -44,17 +52,19 @@ def broadcast_data (sock, message):
                                 # broken socket connection may be, chat client pressed ctrl+c for example
                                 addr = socket.getpeername()
                                 socket.close()
+                                CONNECTIONS.remove(socket)
                                 AVAIL_CONNECTIONS.remove(socket)
                                 active_addr.remove(addr)
 
 def get_statistics(sock):
-        for socket in AVAIL_CONNECTIONS:
+        for socket in CONNECTIONS:
                 if socket != server_socket and socket != sock:
                         try:
                                 socket.send(str.encode('s'))
                         except:
                                 addr = socket.getpeername()
                                 socket.close()
+                                CONNECTIONS.remove(socket)
                                 AVAIL_CONNECTIONS.remove(socket)
                                 active_addr.remove(addr)
 
@@ -66,6 +76,7 @@ def send_statistics(message,addr_curr):
         except:
                 addr = control_sock.getpeername()
                 control_sock.close()
+                CONNECTIONS.remove(control_sock)
                 AVAIL_CONNECTIONS.remove(control_sock)
                 active_addr.remove(addr)
 
@@ -81,6 +92,7 @@ def clients_status (sock,curr_addr):
                 sock.send(str.encode(message))
         except:
                 sock.close()
+                CONNECTIONS.remove(socket)
                 AVAIL_CONNECTIONS.remove(socket)
                 active_addr.remove(curr_addr)
 
@@ -89,6 +101,7 @@ if __name__ == "__main__":
 
         # List to keep track of socket descriptors
         task_count = 1
+        CONNECTIONS = []
         AVAIL_CONNECTIONS = []
         active_addr = []
         busy_connections = []
@@ -107,19 +120,21 @@ if __name__ == "__main__":
 
 
         # Add server socket to the list of readable connections
-        AVAIL_CONNECTIONS.append(server_socket)
+        CONNECTIONS.append(server_socket)
+        #AVAIL_CONNECTIONS.append(server_socket)
 
         print("server started on port " + str(PORT))
 
         while 1:
                 # Get the list sockets which are ready to be read through select
-                read_sockets,write_sockets,error_sockets = select.select(AVAIL_CONNECTIONS,[],[])
+                read_sockets,write_sockets,error_sockets = select.select(CONNECTIONS,[],[])
 
                 for sock in read_sockets:
                         #New connection
                         if sock == server_socket:
                                 # Handle the case in which there is a new connection recieved through server_socket
                                 sockfd, addr = server_socket.accept()
+                                CONNECTIONS.append(sockfd)
                                 AVAIL_CONNECTIONS.append(sockfd)
                                 active_addr.append(addr)
                                 print("Client (%s, %s) connected" % addr)
@@ -138,12 +153,20 @@ if __name__ == "__main__":
 
                                         if data.decode().startswith('SUBMIT'):
                                                 print(sock.getpeername())
-                                                if len(AVAIL_CONNECTIONS) > 2:
+                                                if control_sock is None:
+                                                        control_sock = sock
+                                                if len(AVAIL_CONNECTIONS) > 1:
                                                         print('Task ' + str(task_count) + ' sending for execution')
                                                         task_count += 1
                                                         send_to_execute(data.decode()[7:],sock, task_count-1)
                                                 else:
                                                         print('no clients available')
+
+                                        elif data.decode().startswith('DONE'):
+                                                send_results(data.decode()[4:],sock)
+
+                                        elif data.decode().startswith('FINISH'):
+                                                finish_task(data.decode()[6:])
 
 
                                         elif data.decode().startswith('ret_s'):
@@ -170,6 +193,7 @@ if __name__ == "__main__":
                                         broadcast_data(sock, "Client (%s, %s) is offline" % addr)
                                         print("Client (%s, %s) is offline" % addr)
                                         sock.close()
+                                        CONNECTIONS.remove(sock)
                                         AVAIL_CONNECTIONS.remove(sock)
                                         active_addr.remove(addr)
                                         continue
