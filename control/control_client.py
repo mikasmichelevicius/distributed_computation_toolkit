@@ -3,7 +3,6 @@ from ftplib import FTP
 
 def does_compile(filename):
         try:
-                print(filename)
                 py_compile.compile(filename, doraise=True)
                 return True
         except py_compile.PyCompileError:
@@ -23,12 +22,11 @@ def get_results(task_dir,s):
                 ftp.retrbinary('RETR ' + file_name, localfile.write, 1024)
         ftp.quit()
         localfile.close()
-        print('FINISHED EXECUTION OF',data.decode()[4:])
+        print('\n       FINISHED EXECUTION OF',data.decode()[4:],"\n        \____ RESULTS CAN BE FOUND IN DIRECTORY /"+data.decode()[4:])
         s.send(str.encode("FINISH"+task_dir))
 
 
 def send_file(sub_file):
-        print('====',sub_file)
         ftp = FTP('')
         ftp.connect('localhost',1026)
         ftp.login()
@@ -59,6 +57,8 @@ def prompt() :
 
 #main function
 if __name__ == "__main__":
+
+        tasks_count = 1
 
         if(len(sys.argv) < 3) :
                 print('Usage : python telnet.py hostname port')
@@ -96,24 +96,26 @@ if __name__ == "__main__":
                                         sys.exit()
                                 elif (data.decode().startswith('a')):
                                         sys.stdout.write(data.decode()[1:])
-                                        prompt()
+                                        # prompt()
                                 elif data.decode().startswith('DONE'):
                                         get_results(data.decode()[4:],s)
                                 else :
                                         #print data
                                         sys.stdout.write(data.decode())
-                                        prompt()
+                                        # prompt()
 
                         #user entered a message
                         else :
                                 msg = sys.stdin.readline().replace('\n','')
                                 if (msg.startswith('SUBMIT')):
-                                        #get_file()
+
                                         is_valid = does_compile(msg[7:])
                                         if is_valid:
                                                 send_file(msg[7:])
+                                                print("\n       ",msg[7:],"SENT FOR EXECUTION AS TASK"+str(tasks_count))
+                                                tasks_count += 1
                                                 s.send(str.encode(msg))
 
                                 else:
                                         s.send(str.encode(msg))
-                                #prompt()
+                                prompt()

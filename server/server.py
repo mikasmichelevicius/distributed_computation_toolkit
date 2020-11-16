@@ -139,7 +139,7 @@ if __name__ == "__main__":
                                 active_addr.append(addr)
                                 print("Client (%s, %s) connected" % addr)
 
-                                broadcast_data(sockfd, "[%s:%s] entered room\n" % addr)
+                                # broadcast_data(sockfd, "Client [%s:%s] entered room\n" % addr)
 
                         #Some incoming message from a client
                         else:
