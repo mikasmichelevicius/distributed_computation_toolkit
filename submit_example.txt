@@ -1,0 +1,22 @@
+# Example of submission file
+# Every line starting with # is a comment
+
+executable = /path/to/task/task.py
+
+# optional
+command_line_arguments = "arg1 arg2 arg3"
+
+# optional
+data_file = /path/to/input/data.csv
+
+output = /path/to/task/outputfile.txt
+
+error = /path/to/task/errorfile.txt
+
+log = /path/to/task/task.log
+
+request_cpu = 1
+# in MB
+request_memory = 1024
+# in KB
+request_disk = 10240
