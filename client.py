@@ -6,6 +6,25 @@ def prompt() :
         sys.stdout.write('\n<Client> ')
         sys.stdout.flush()
 
+def results_to_server(task_dir, filename):
+        result_files = os.listdir(task_dir)
+        result_files.remove(filename)
+        print(result_files)
+
+        ftp = FTP('')
+        ftp.connect('localhost',1026)
+        ftp.login()
+        ftp.cwd(task_dir) #replace with your directory
+        #ftp.retrlines('LIST')
+        for x in range(len(result_files)):
+                # filename = task_dir+"/"+result_files[x]
+                filename = result_files[x]
+                ftp.storbinary('STOR '+filename, open(task_dir+"/"+filename, 'rb'))
+        #filename = sub_file
+        #filename = 'task_example.py' #replace with your file in your home folder
+        ftp.quit()
+        shutil.rmtree(task_dir)
+
 def get_file(filename,task_dir):
         ftp = FTP('')
         ftp.connect('localhost',1026)
@@ -38,6 +57,7 @@ def execute_task(submit_msg):
         if err:
                 err_file.write(err.decode())
         err_file.close()
+        results_to_server(task_dir, filename)
 
 
 def return_stats(s):
