@@ -1,13 +1,101 @@
-import socket, select, os, shutil
+import socket, select, os, shutil, time
+
+def job_status():
+        print('Listing running and queued tasks')
+        message = "JOB-status\nACTIVE:\n"
+        if len(running_tasks) == 0:
+                message += "    NO TASKS ARE RUNNING RIGHT NOW.\n"
+        else:
+                for key in running_tasks:
+                        start_time = execution_time[running_tasks[key]]
+                        run_time = "{:.2f}".format(time.time() - start_time)
+                        message += "    "+str(running_tasks[key])+" IS RUNNING ON HOST " + str(key) + ".\n        EXECUTION TIME: "+str(run_time)+" SECONDS.\n"
+
+        message += "\nQUEUE:\n"
+        if len(queued_tasks) == 0:
+                message += "    NO TASKS ARE QUEUED RIGHT NOW.\n"
+        else:
+                for task in queued_tasks:
+                        message += "    "+str(task)+" IS WAITING IN THE QUEUE.\n"
+        try:
+                control_sock.send(str.encode(message))
+        except:
+                addr = socket_to_execute.getpeername()
+                socket_to_execute.close()
+                CONNECTIONS.remove(socket_to_execute)
+                active_addr.remove(addr)
 
 def finish_task(task_dir):
         shutil.rmtree(task_dir)
+        if (len(tasks_to_return) > 0):
+                get_waiting_results()
+
+def execute_queued():
+        for x in queued_tasks:
+                task_no = x[4:]
+                send_to_execute_queued(x)
 
 def send_results(task_dir, execution_sock):
-        busy_connections.remove(execution_sock)
-        AVAIL_CONNECTIONS.append(execution_sock)
-        control_sock.send(str.encode("DONE"+task_dir))
+        if control_sock:
+                running_tasks.pop(execution_sock.getpeername())
+                execution_time.pop(task_dir)
+                busy_connections.remove(execution_sock)
+                AVAIL_CONNECTIONS.append(execution_sock)
+                control_sock.send(str.encode("DONE"+task_dir))
+        else:
+                running_tasks.pop(execution_sock.getpeername())
+                start_time = execution_time[task_dir]
+                execution_time[task_dir] = time.time() - start_time
+                busy_connections.remove(execution_sock)
+                AVAIL_CONNECTIONS.append(execution_sock)
+                tasks_to_return.append(task_dir)
+        execute_queued()
 
+
+def send_waiting(task_dir):
+        control_sock.send(str.encode("RETURN"+task_dir))
+
+
+def get_waiting_results():
+        if len(tasks_to_return) > 0:
+                task_dir = tasks_to_return[0]
+                send_waiting(task_dir)
+                tasks_to_return.remove(task_dir)
+        else:
+                print("All results returned")
+
+
+def send_to_execute_queued(directory):
+        files = os.listdir(directory)
+        submit_msg = ""
+        for file in files:
+                if file.endswith('.py'):
+                        submit_msg = directory+file
+                        break;
+        if not submit_msg:
+                return
+        socket_to_execute = None
+        for socket in AVAIL_CONNECTIONS:
+                if socket != server_socket and socket != control_sock:
+                        socket_to_execute = socket
+                        break
+        if socket_to_execute is None:
+                print('No clients available, still in queue.')
+        else:
+                running_tasks[socket_to_execute.getpeername()] = directory
+                busy_connections.append(socket_to_execute)
+                AVAIL_CONNECTIONS.remove(socket_to_execute)
+                queued_tasks.remove(directory)
+                try:
+                        execution_time[directory] = time.time()
+                        socket_to_execute.send(str.encode(submit_msg))
+                except:
+                        execution_time.pop(directory)
+                        addr = socket_to_execute.getpeername()
+                        socket_to_execute.close()
+                        CONNECTIONS.remove(socket_to_execute)
+                        busy_connections.remove(socket_to_execute)
+                        active_addr.remove(addr)
 
 def send_to_execute (filename, sock, task_no):
         directory = "TASK"+str(task_no)
@@ -27,19 +115,24 @@ def send_to_execute (filename, sock, task_no):
                         break
 
         if socket_to_execute is None:
-                print('No clients available')
+                queued_tasks.append(directory)
+                print('No clients available, added to queue')
+
         else:
+                # ADD TO RUNNING QUEUE
+                running_tasks[socket_to_execute.getpeername()] = directory
                 busy_connections.append(socket_to_execute)
                 AVAIL_CONNECTIONS.remove(socket_to_execute)
                 try:
+                        execution_time[directory] = time.time()
                         socket_to_execute.send(str.encode(submit_msg))
                 except:
+                        execution_time.pop(directory)
                         addr = socket_to_execute.getpeername()
                         socket_to_execute.close()
                         CONNECTIONS.remove(socket_to_execute)
                         busy_connections.remove(socket_to_execute)
                         active_addr.remove(addr)
-
 
 #Function to broadcast chat messages to all connected clients
 def broadcast_data (sock, message):
@@ -80,7 +173,6 @@ def send_statistics(message,addr_curr):
                 AVAIL_CONNECTIONS.remove(control_sock)
                 active_addr.remove(addr)
 
-
 def clients_status (sock,curr_addr):
         message = "a \n ------\n"+str(len(active_addr)-1)+" active clients with addresses:\n"
         for addr in active_addr:
@@ -105,6 +197,10 @@ if __name__ == "__main__":
         AVAIL_CONNECTIONS = []
         active_addr = []
         busy_connections = []
+        running_tasks = {}
+        queued_tasks = []
+        execution_time = {}
+        tasks_to_return = []
         statistics = {}
         RECV_BUFFER = 4096 # Advisable to keep it as an exponent of 2
         PORT = 5000
@@ -139,7 +235,6 @@ if __name__ == "__main__":
                                 active_addr.append(addr)
                                 print("Client (%s, %s) connected" % addr)
 
-                                # broadcast_data(sockfd, "Client [%s:%s] entered room\n" % addr)
 
                         #Some incoming message from a client
                         else:
@@ -155,12 +250,13 @@ if __name__ == "__main__":
                                                 print(sock.getpeername())
                                                 if control_sock is None:
                                                         control_sock = sock
-                                                if len(AVAIL_CONNECTIONS) > 1:
-                                                        print('Task ' + str(task_count) + ' sending for execution')
-                                                        task_count += 1
-                                                        send_to_execute(data.decode()[7:],sock, task_count-1)
-                                                else:
-                                                        print('no clients available')
+
+                                                print('Task ' + str(task_count) + ' sending for execution')
+                                                task_count += 1
+                                                send_to_execute(data.decode()[7:],sock, task_count-1)
+
+                                        elif data.decode().startswith('JOB-status'):
+                                                job_status()
 
                                         elif data.decode().startswith('DONE'):
                                                 send_results(data.decode()[4:],sock)
@@ -172,6 +268,15 @@ if __name__ == "__main__":
                                         elif data.decode().startswith('ret_s'):
                                                 send_statistics(data.decode()[5:],sock.getpeername())
 
+                                        elif data.decode().startswith('RETRIEVE'):
+                                                get_waiting_results()
+
+                                        elif data.decode().startswith('CONTROL'):
+                                                control_sock = sock
+                                                if len(tasks_to_return) > 0:
+                                                        sock.send(str.encode("RETRIEVE"))
+                                                        # sock.send(str.encode("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED\n"))
+                                                        # print('\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED\n')
 
                                         elif data.decode() == 's':
                                                 print(len(statistics), len(active_addr))
@@ -192,6 +297,8 @@ if __name__ == "__main__":
                                 else:
                                         broadcast_data(sock, "Client (%s, %s) is offline" % addr)
                                         print("Client (%s, %s) is offline" % addr)
+                                        if (sock == control_sock):
+                                                control_sock = None
                                         sock.close()
                                         CONNECTIONS.remove(sock)
                                         AVAIL_CONNECTIONS.remove(sock)

@@ -22,7 +22,11 @@ def get_results(task_dir,s):
                 ftp.retrbinary('RETR ' + file_name, localfile.write, 1024)
         ftp.quit()
         localfile.close()
-        print('\n       FINISHED EXECUTION OF',data.decode()[4:],"\n        \____ RESULTS CAN BE FOUND IN DIRECTORY /"+data.decode()[4:])
+        with open(task_dir+"/runtime.txt", 'r') as file:
+                run_time = file.read().replace('\n', '')
+        os.remove(task_dir+"/runtime.txt")
+        print('\n       FINISHED EXECUTION OF',task_dir," IN "+run_time+"\n        \____ RESULTS CAN BE FOUND IN DIRECTORY /"+task_dir)
+        # print('\n       FINISHED EXECUTION OF',data.decode()[4:],"\n        \____ RESULTS CAN BE FOUND IN DIRECTORY /"+data.decode()[4:])
         s.send(str.encode("FINISH"+task_dir))
 
 
@@ -52,6 +56,7 @@ def get_file():
 def prompt() :
         sys.stdout.write('\nClients addresses - write a')
         sys.stdout.write('\nStatistics of clients - write s')
+        sys.stdout.write('\nStatus of tasks - JOB-status')
         sys.stdout.write('\nTask submission - SUBMIT filename.txt\n')
         sys.stdout.flush()
 
@@ -77,6 +82,7 @@ if __name__ == "__main__":
                 print('Unable to connect')
                 sys.exit()
 
+        s.send(str.encode("CONTROL"))
         print('Connected to remote host. Start sending messages')
         prompt()
 
@@ -99,6 +105,15 @@ if __name__ == "__main__":
                                         # prompt()
                                 elif data.decode().startswith('DONE'):
                                         get_results(data.decode()[4:],s)
+
+                                elif data.decode().startswith('RETURN'):
+                                        get_results(data.decode()[6:],s)
+
+                                elif data.decode().startswith('JOB-status'):
+                                        sys.stdout.write(data.decode()[10:])
+                                elif data.decode().startswith('RETRIEVE'):
+                                        print("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED FROM SERVER\n")
+                                        s.send(str.encode("RETRIEVE"))
                                 else :
                                         #print data
                                         sys.stdout.write(data.decode())

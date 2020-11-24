@@ -1,4 +1,4 @@
-import socket, select, string, sys, os, shutil, subprocess
+import socket, select, string, sys, os, shutil, subprocess, time
 from ftplib import FTP
 
 
@@ -44,7 +44,9 @@ def execute_task(submit_msg,s):
         get_file(filename, task_dir)
 
         run_program = "python " + task_dir+"/"+filename + " > " + task_dir+"/stdout.txt"
+        start_time = time.time()
         proc = subprocess.Popen(run_program, stderr=subprocess.PIPE, shell=True)
+        total_time = time.time() - start_time
         (out, err) = proc.communicate()
         err_file = open(task_dir+"/stderr.txt", "w")
         if proc.returncode == 0:
@@ -55,6 +57,9 @@ def execute_task(submit_msg,s):
         if err:
                 err_file.write(err.decode())
         err_file.close()
+        run_file = open(task_dir+"/runtime.txt", "w")
+        run_file.write(str("{:.2f}".format(time.time() - start_time))+" SECONDS")
+        run_file.close()
         results_to_server(task_dir, filename)
         print('RESPONDING TO SERVER ABOUT COMPLETION')
         resp_mesg = "DONE"+task_dir
@@ -135,7 +140,7 @@ if __name__ == "__main__":
 
 
                                 elif data.decode().startswith('TASK'):
-                                        print('ATEJO CIA', data.decode())
+                                        print('EXECUTING', data.decode()[:5])
                                         execute_task(data.decode(),s)
 
 
