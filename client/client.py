@@ -116,6 +116,7 @@ if __name__ == "__main__":
                 print('Unable to connect')
                 sys.exit()
 
+        s.send(str.encode("CLIENT"))
         print('Connected to remote host. Start sending messages')
         prompt()
 

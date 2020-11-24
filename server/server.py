@@ -51,10 +51,8 @@ def send_results(task_dir, execution_sock):
                 tasks_to_return.append(task_dir)
         execute_queued()
 
-
 def send_waiting(task_dir):
         control_sock.send(str.encode("RETURN"+task_dir))
-
 
 def get_waiting_results():
         if len(tasks_to_return) > 0:
@@ -63,7 +61,6 @@ def get_waiting_results():
                 tasks_to_return.remove(task_dir)
         else:
                 print("All results returned")
-
 
 def send_to_execute_queued(directory):
         files = os.listdir(directory)
@@ -174,12 +171,30 @@ def send_statistics(message,addr_curr):
                 active_addr.remove(addr)
 
 def clients_status (sock,curr_addr):
-        message = "a \n ------\n"+str(len(active_addr)-1)+" active clients with addresses:\n"
-        for addr in active_addr:
-                if addr != curr_addr:
-                        message += str(addr)+'\n'
-                        print(addr)
-        message += " ------\n"
+        if (len(AVAIL_CONNECTIONS) < 2) and (len(busy_connections) == 0):
+                try:
+                        sock.send(str.encode("a \n____________________\nNO CLIENTS CONNECTED"))
+                except:
+                        sock.close()
+                        CONNECTIONS.remove(socket)
+                        AVAIL_CONNECTIONS.remove(socket)
+                        active_addr.remove(curr_addr)
+                return
+
+        message = "a \nAVAILABLE CLIENTS:\n"
+        if len(AVAIL_CONNECTIONS) > 1:
+                for socket in AVAIL_CONNECTIONS:
+                        if socket != control_sock:
+                                message += "    CLIENT WIHT ADDRESS: "+str(socket.getpeername())+"\n"
+        else:
+                message += "    NO AVAILABLE CLIENTS RIGHT NOW\n"
+                
+        message += "\nBUSY CLIENTS:\n"
+        if len(busy_connections) > 0:
+                for socket in busy_connections:
+                        message += "    CLIENT WITH ADDRESS: "+str(socket.getpeername())+"\n"
+        else:
+                message += "    NO WORKING CLIENTS RIGHT NOW"
         try:
                 sock.send(str.encode(message))
         except:
@@ -275,8 +290,9 @@ if __name__ == "__main__":
                                                 control_sock = sock
                                                 if len(tasks_to_return) > 0:
                                                         sock.send(str.encode("RETRIEVE"))
-                                                        # sock.send(str.encode("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED\n"))
-                                                        # print('\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED\n')
+
+                                        elif data.decode().startswith('CLIENT'):
+                                                execute_queued()
 
                                         elif data.decode() == 's':
                                                 print(len(statistics), len(active_addr))
