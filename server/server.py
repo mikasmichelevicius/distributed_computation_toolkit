@@ -1,6 +1,6 @@
-import socket, select, os, shutil, time
+import socket, select, os, shutil, time, shelve
 
-def job_status():
+def job_status(sock):
         print('Listing running and queued tasks')
         message = "JOB-status\nACTIVE:\n"
         if len(running_tasks) == 0:
@@ -18,7 +18,7 @@ def job_status():
                 for task in queued_tasks:
                         message += "    "+str(task)+" IS WAITING IN THE QUEUE.\n"
         try:
-                control_sock.send(str.encode(message))
+                sock.send(str.encode(message))
         except:
                 addr = socket_to_execute.getpeername()
                 socket_to_execute.close()
@@ -203,11 +203,23 @@ def clients_status (sock,curr_addr):
                 AVAIL_CONNECTIONS.remove(socket)
                 active_addr.remove(curr_addr)
 
+def return_id (sock, id_no):
+        sock.send(str.encode("CONTROL_ID"+str(id_no)))
 
 if __name__ == "__main__":
 
+        if os.path.isfile('data.db'):
+                d = shelve.open('data.db')
+                control_count = d['id_count']
+                d.close()
+        else:
+                d = shelve.open('data.db')
+                d['id_count'] = 0
+                control_count = 0
+                d.close()
         # List to keep track of socket descriptors
         task_count = 1
+        # control_count = 1
         CONNECTIONS = []
         AVAIL_CONNECTIONS = []
         active_addr = []
@@ -221,10 +233,10 @@ if __name__ == "__main__":
         PORT = 5000
         host_addr = ("0.0.0.0",PORT)
         control_sock = None
+        control_clients = {}
 
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        # this has no effect, why ?
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(("0.0.0.0", PORT))
         server_socket.listen(10)
@@ -255,6 +267,7 @@ if __name__ == "__main__":
                         else:
                                 # Data recieved from client, process it
                                 data = sock.recv(RECV_BUFFER)
+                                addr = sock.getpeername()
                                 if data:
                                         if data.decode() == 'a':
                                                 addr_curr = sock.getpeername()
@@ -273,7 +286,7 @@ if __name__ == "__main__":
                                                 sock.send(str.encode(ret_msg))
 
                                         elif data.decode().startswith('JOB-status'):
-                                                job_status()
+                                                job_status(sock)
 
                                         elif data.decode().startswith('DONE'):
                                                 send_results(data.decode()[4:],sock)
@@ -291,11 +304,25 @@ if __name__ == "__main__":
                                         elif data.decode().startswith('CONTROL'):
                                                 # CONTROL SOCK CONNECTS, ADD TO THE LIST OF THESE SOCKS
                                                 control_sock = sock
+                                                if sock in control_clients.keys():
+                                                        print('CONTROL CLIENT',control_clients[sock],'HAS CONNECTED')
+                                                else:
+                                                        control_clients[sock] = control_count
+                                                        control_count += 1
+                                                        d = shelve.open('data.db')
+                                                        d['id_count'] = control_count
+                                                        d.close()
+
+                                                return_id(sock, control_count)
                                                 if len(tasks_to_return) > 0:
                                                         sock.send(str.encode("RETRIEVE"))
 
                                         elif data.decode().startswith('CLIENT'):
                                                 execute_queued()
+
+                                        elif data.decode().startswith('EXISTING_CONTROL'):
+                                                control_clients[sock] = int(data.decode()[16:])
+                                                print("CONTROL CLIENT ID IS:",control_clients[sock])
 
                                         elif data.decode() == 's':
                                                 print(len(statistics), len(active_addr))
@@ -321,6 +348,7 @@ if __name__ == "__main__":
                                         sock.close()
                                         CONNECTIONS.remove(sock)
                                         AVAIL_CONNECTIONS.remove(sock)
+                                        print(active_addr)
                                         active_addr.remove(addr)
                                         continue
 
