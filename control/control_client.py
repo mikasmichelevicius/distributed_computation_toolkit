@@ -114,6 +114,11 @@ if __name__ == "__main__":
                                 elif data.decode().startswith('RETRIEVE'):
                                         print("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED FROM SERVER\n")
                                         s.send(str.encode("RETRIEVE"))
+                                elif data.decode().startswith('CONFIRM'):
+                                        digits = 0
+                                        while data.decode()[13+digits].isdigit():
+                                                digits += 1
+                                        print("\n       ",data.decode()[13+digits:],"SENT FOR EXECUTION AS",data.decode()[8:13+digits])
                                 else :
                                         #print data
                                         sys.stdout.write(data.decode())
@@ -127,10 +132,8 @@ if __name__ == "__main__":
                                         is_valid = does_compile(msg[7:])
                                         if is_valid:
                                                 send_file(msg[7:])
-                                                print("\n       ",msg[7:],"SENT FOR EXECUTION AS TASK"+str(tasks_count))
-                                                tasks_count += 1
                                                 s.send(str.encode(msg))
 
                                 else:
                                         s.send(str.encode(msg))
-                                prompt()
+                                        prompt()

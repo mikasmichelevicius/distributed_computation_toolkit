@@ -37,10 +37,11 @@ def get_file(filename,task_dir):
         ftp.quit()
         localfile.close()
 
-def execute_task(submit_msg,s):
-        task_dir = submit_msg[:5]
-        task_no = int(submit_msg[4])
-        filename = submit_msg[5:]
+def execute_task(submit_msg,s,digits):
+        task_dir = submit_msg[:4+digits]
+        task_no = int(submit_msg[4:4+digits])
+        print(task_no,'====================')
+        filename = submit_msg[4+digits:]
         get_file(filename, task_dir)
 
         run_program = "python " + task_dir+"/"+filename + " > " + task_dir+"/stdout.txt"
@@ -141,8 +142,15 @@ if __name__ == "__main__":
 
 
                                 elif data.decode().startswith('TASK'):
-                                        print('EXECUTING', data.decode()[:5])
-                                        execute_task(data.decode(),s)
+                                        digits = 1
+                                        while data.decode()[4+digits].isdigit():
+                                                digits += 1
+                                                print('MULTIPLE DIGITS')
+
+                                        print('EXECUTING', data.decode()[:4+digits])
+                                        print(data.decode()[5])
+                                        print(data.decode()[6])
+                                        execute_task(data.decode(),s,digits)
 
 
                                 else :

@@ -188,7 +188,7 @@ def clients_status (sock,curr_addr):
                                 message += "    CLIENT WIHT ADDRESS: "+str(socket.getpeername())+"\n"
         else:
                 message += "    NO AVAILABLE CLIENTS RIGHT NOW\n"
-                
+
         message += "\nBUSY CLIENTS:\n"
         if len(busy_connections) > 0:
                 for socket in busy_connections:
@@ -269,6 +269,8 @@ if __name__ == "__main__":
                                                 print('Task ' + str(task_count) + ' sending for execution')
                                                 task_count += 1
                                                 send_to_execute(data.decode()[7:],sock, task_count-1)
+                                                ret_msg = "CONFIRM_TASK"+str(task_count-1)+data.decode()[7:]
+                                                sock.send(str.encode(ret_msg))
 
                                         elif data.decode().startswith('JOB-status'):
                                                 job_status()
@@ -287,6 +289,7 @@ if __name__ == "__main__":
                                                 get_waiting_results()
 
                                         elif data.decode().startswith('CONTROL'):
+                                                # CONTROL SOCK CONNECTS, ADD TO THE LIST OF THESE SOCKS
                                                 control_sock = sock
                                                 if len(tasks_to_return) > 0:
                                                         sock.send(str.encode("RETRIEVE"))
