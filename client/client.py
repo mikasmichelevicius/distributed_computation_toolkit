@@ -148,8 +148,6 @@ if __name__ == "__main__":
                                                 print('MULTIPLE DIGITS')
 
                                         print('EXECUTING', data.decode()[:4+digits])
-                                        print(data.decode()[5])
-                                        print(data.decode()[6])
                                         execute_task(data.decode(),s,digits)
 
 

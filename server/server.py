@@ -36,12 +36,15 @@ def execute_queued():
                 send_to_execute_queued(x)
 
 def send_results(task_dir, execution_sock):
-        if control_sock:
+        user_id = task_user_map[task_dir]
+        user_return = control_clients[user_id]
+        if user_return in CONNECTIONS:
                 running_tasks.pop(execution_sock.getpeername())
                 execution_time.pop(task_dir)
                 busy_connections.remove(execution_sock)
                 AVAIL_CONNECTIONS.append(execution_sock)
-                control_sock.send(str.encode("DONE"+task_dir))
+                del task_user_map[task_dir]
+                user_return.send(str.encode("DONE"+task_dir))
         else:
                 running_tasks.pop(execution_sock.getpeername())
                 start_time = execution_time[task_dir]
@@ -52,13 +55,16 @@ def send_results(task_dir, execution_sock):
         execute_queued()
 
 def send_waiting(task_dir):
-        control_sock.send(str.encode("RETURN"+task_dir))
+        user_id = task_user_map[task_dir]
+        user_return = control_clients[user_id]
+        user_return.send(str.encode("RETURN"+task_dir))
 
 def get_waiting_results():
         if len(tasks_to_return) > 0:
-                task_dir = tasks_to_return[0]
-                send_waiting(task_dir)
-                tasks_to_return.remove(task_dir)
+                for task_dir in tasks_to_return:
+                        if control_clients[task_user_map[task_dir]] in CONNECTIONS:
+                                send_waiting(task_dir)
+                                tasks_to_return.remove(task_dir)
         else:
                 print("All results returned")
 
@@ -73,7 +79,7 @@ def send_to_execute_queued(directory):
                 return
         socket_to_execute = None
         for socket in AVAIL_CONNECTIONS:
-                if socket != server_socket and socket != control_sock:
+                if socket != server_socket:
                         socket_to_execute = socket
                         break
         if socket_to_execute is None:
@@ -101,13 +107,18 @@ def send_to_execute (filename, sock, task_no):
         print(path)
         os.mkdir(path)
 
+        for id, user in control_clients.items():
+                if user == sock:
+                        task_user_map[directory] = id
+                        break
+
         shutil.move(filename, directory)
 
         submit_msg = directory + filename
 
         socket_to_execute = None
         for socket in AVAIL_CONNECTIONS:
-                if socket != server_socket and socket != sock:
+                if socket != server_socket:
                         socket_to_execute = socket
                         break
 
@@ -234,6 +245,7 @@ if __name__ == "__main__":
         host_addr = ("0.0.0.0",PORT)
         control_sock = None
         control_clients = {}
+        task_user_map = {}
 
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -304,14 +316,23 @@ if __name__ == "__main__":
                                         elif data.decode().startswith('CONTROL'):
                                                 # CONTROL SOCK CONNECTS, ADD TO THE LIST OF THESE SOCKS
                                                 control_sock = sock
-                                                if sock in control_clients.keys():
+                                                if sock in control_clients.values():
                                                         print('CONTROL CLIENT',control_clients[sock],'HAS CONNECTED')
                                                 else:
-                                                        control_clients[sock] = control_count
+                                                        control_clients[control_count] = sock
                                                         control_count += 1
                                                         d = shelve.open('data.db')
                                                         d['id_count'] = control_count
                                                         d.close()
+
+                                                # control_clients[control_count] = sock
+                                                # control_count += 1
+                                                # d = shelve.open('data.db')
+                                                # d['id_count'] = control_count
+                                                # d.close()
+
+                                                if sock in AVAIL_CONNECTIONS:
+                                                        AVAIL_CONNECTIONS.remove(sock)
 
                                                 return_id(sock, control_count)
                                                 if len(tasks_to_return) > 0:
@@ -321,8 +342,14 @@ if __name__ == "__main__":
                                                 execute_queued()
 
                                         elif data.decode().startswith('EXISTING_CONTROL'):
-                                                control_clients[sock] = int(data.decode()[16:])
-                                                print("CONTROL CLIENT ID IS:",control_clients[sock])
+                                                control_clients[int(data.decode()[16:])] = sock
+                                                # control_clients[sock] = int(data.decode()[16:])
+                                                if sock in AVAIL_CONNECTIONS:
+                                                        AVAIL_CONNECTIONS.remove(sock)
+                                                # print("CONTROL CLIENT ID IS:",control_clients[sock])
+                                                print("CONTROL CLIENT ID IS:",int(data.decode()[16:]))
+                                                if len(tasks_to_return) > 0:
+                                                        sock.send(str.encode("RETRIEVE"))
 
                                         elif data.decode() == 's':
                                                 print(len(statistics), len(active_addr))
@@ -347,7 +374,8 @@ if __name__ == "__main__":
                                                 control_sock = None
                                         sock.close()
                                         CONNECTIONS.remove(sock)
-                                        AVAIL_CONNECTIONS.remove(sock)
+                                        if sock in AVAIL_CONNECTIONS:
+                                                AVAIL_CONNECTIONS.remove(sock)
                                         print(active_addr)
                                         active_addr.remove(addr)
                                         continue

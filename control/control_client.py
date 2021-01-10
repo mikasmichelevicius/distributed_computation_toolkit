@@ -26,7 +26,6 @@ def get_results(task_dir,s):
                 run_time = file.read().replace('\n', '')
         os.remove(task_dir+"/runtime.txt")
         print('\n       FINISHED EXECUTION OF',task_dir," IN "+run_time+"\n        \____ RESULTS CAN BE FOUND IN DIRECTORY /"+task_dir)
-        # print('\n       FINISHED EXECUTION OF',data.decode()[4:],"\n        \____ RESULTS CAN BE FOUND IN DIRECTORY /"+data.decode()[4:])
         s.send(str.encode("FINISH"+task_dir))
 
 
