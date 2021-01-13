@@ -1,17 +1,56 @@
-import socket, select, os, shutil, time, shelve
+import socket, select, os, shutil, time, shelve, sqlite3
+
+def enqueue(directory, id):
+        print(directory, "OF USER WITH ID", id, "IS ADDED TO QUEUE")
+        if not queued_tasks:
+                queued_tasks.append(directory)
+                return
+
+        queued_tasks.append(directory)
+        update_queue()
+
+def update_queue():
+        conn = sqlite3.connect('db_server.db')
+        cursor = conn.execute('SELECT UserId, ExecTime FROM Users')
+        for row in cursor:
+                user_exec_time[row[0]] = row[1]
+        conn.close()
+
+        priority = len(queued_tasks)-1
+        id = task_user_map[queued_tasks[len(queued_tasks)-1]]
+        for i in range(len(queued_tasks)-2, -1, -1):
+                temp_id = task_user_map[queued_tasks[i]]
+                if user_exec_time[temp_id] <= user_exec_time[id]:
+                        priority = i
+                        id = temp_id
+        if priority != 0:
+                queued_tasks[0], queued_tasks[priority] = queued_tasks[priority], queued_tasks[0]
+
+def update_exec_times(task_dir, time):
+        user_id = task_user_map[task_dir]
+        conn = sqlite3.connect('db_server.db')
+        conn.execute("UPDATE Users SET ExecTime = ExecTime +"+str(time)+" WHERE UserId ="+str(user_id))
+        conn.commit()
+        conn.close()
+        if len(queued_tasks) > 1:
+                update_queue()
+
 
 def remove_datafile(submit_file, task_dir):
         current = os.getcwd()
         os.chdir(os.path.join(current, task_dir))
         data = None
+        executable = None
         with open(submit_file) as file:
                 for line in file:
+                        if 'executable' in line:
+                                executable = line.split()[2]
                         if 'data' in line:
                                 data = line.split()[2]
                                 print(data)
-                                break
         if data is not None:
                 os.remove(data)
+        os.remove(executable)
 
         os.chdir(current)
 
@@ -54,11 +93,16 @@ def send_results(task_dir, submit_file, execution_sock):
         remove_datafile(submit_file, task_dir)
         user_id = task_user_map[task_dir]
         user_return = control_clients[user_id]
+
+        exec_time = (time.time() - execution_time[task_dir])/60
+        print("EXECUTION TIME IS HERE=======", exec_time, "==============")
+        update_exec_times(task_dir, exec_time)
+
         if user_return in CONNECTIONS:
                 running_tasks.pop(execution_sock.getpeername())
-                execution_time.pop(task_dir)
                 busy_connections.remove(execution_sock)
                 AVAIL_CONNECTIONS.append(execution_sock)
+                execution_time.pop(task_dir)
                 del task_user_map[task_dir]
                 user_return.send(str.encode("DONE"+task_dir))
         else:
@@ -88,7 +132,7 @@ def send_to_execute_queued(directory):
         files = os.listdir(directory)
         submit_msg = ""
         for file in files:
-                if file.endswith('.py'):
+                if file.endswith('.txt'):
                         submit_msg = directory+file
                         break;
         if not submit_msg:
@@ -154,7 +198,9 @@ def send_to_execute (filename, sock, task_no):
                         break
 
         if socket_to_execute is None:
-                queued_tasks.append(directory)
+                # ENQUEUE METHOD?
+                enqueue(directory, task_user_map[directory])
+                # queued_tasks.append(directory)
                 print('No clients available, added to queue')
 
         else:
@@ -248,20 +294,46 @@ def clients_status (sock,curr_addr):
 def return_id (sock, id_no):
         sock.send(str.encode("CONTROL_ID"+str(id_no)))
 
+def get_task_no():
+        conn = sqlite3.connect('db_server.db')
+        cursor = conn.execute("SELECT TasksCount FROM Tasks")
+        for row in cursor:
+                print("TASK COUNT:", row[0])
+                ret = row[0]
+                conn.close()
+                return ret
+
+def get_control_no():
+        conn = sqlite3.connect('db_server.db')
+        cursor = conn.execute("SELECT UsersCount FROM Ucount")
+        for row in cursor:
+                print("USERS COUNT:", row[0])
+                ret = row[0]
+                conn.close()
+                return ret
+
+def update_task_no():
+        conn = sqlite3.connect('db_server.db')
+        conn.execute("UPDATE Tasks SET TasksCount = TasksCount + 1")
+        conn.commit()
+        conn.close()
+
+def update_control_no():
+        conn = sqlite3.connect('db_server.db')
+        conn.execute("UPDATE Ucount SET UsersCount = UsersCount + 1")
+        conn.commit()
+        conn.close()
+
+def new_user(id):
+        conn = sqlite3.connect('db_server.db')
+        conn.execute("INSERT INTO Users VALUES ("+str(id)+", 0)")
+        conn.commit()
+        conn.close()
+
 if __name__ == "__main__":
 
-        if os.path.isfile('data.db'):
-                d = shelve.open('data.db')
-                control_count = d['id_count']
-                d.close()
-        else:
-                d = shelve.open('data.db')
-                d['id_count'] = 0
-                control_count = 0
-                d.close()
-        # List to keep track of socket descriptors
-        task_count = 12
-        # control_count = 1
+        control_count = get_control_no()
+        task_count = get_task_no()
         CONNECTIONS = []
         AVAIL_CONNECTIONS = []
         active_addr = []
@@ -277,6 +349,7 @@ if __name__ == "__main__":
         control_sock = None
         control_clients = {}
         task_user_map = {}
+        user_exec_time = {}
 
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -323,6 +396,7 @@ if __name__ == "__main__":
                                                         control_sock = sock
 
                                                 print('Task ' + str(task_count) + ' sending for execution')
+                                                update_task_no()
                                                 task_count += 1
                                                 send_to_execute(data.decode()[7:],sock, task_count-1)
                                                 ret_msg = "CONFIRM_TASK"+str(task_count-1)+data.decode()[7:]
@@ -357,15 +431,17 @@ if __name__ == "__main__":
                                                 else:
                                                         control_clients[control_count] = sock
                                                         control_count += 1
-                                                        d = shelve.open('data.db')
-                                                        d['id_count'] = control_count
-                                                        d.close()
+                                                        update_control_no()
+                                                        # d = shelve.open('data.db')
+                                                        # d['id_count'] = control_count
+                                                        # d.close()
 
+                                                new_user(control_count-1)
 
                                                 if sock in AVAIL_CONNECTIONS:
                                                         AVAIL_CONNECTIONS.remove(sock)
 
-                                                return_id(sock, control_count)
+                                                return_id(sock, control_count-1)
                                                 if len(tasks_to_return) > 0:
                                                         sock.send(str.encode("RETRIEVE"))
 
@@ -410,5 +486,4 @@ if __name__ == "__main__":
                                         print(active_addr)
                                         active_addr.remove(addr)
                                         continue
-
         server_socket.close()
