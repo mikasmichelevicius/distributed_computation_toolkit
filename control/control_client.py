@@ -1,4 +1,4 @@
-import socket, select, string, sys, py_compile, os, shelve
+import socket, select, string, sys, py_compile, os, shelve, sqlite3
 from ftplib import FTP
 
 def does_compile(filename):
@@ -39,14 +39,11 @@ def send_file(sub_file):
         data = None
         filename = sub_file
         with open(filename, 'r') as file:
-                print(file)
                 for line in file:
                         if 'executable' in line:
                                 executable = line.split()[2]
-                                print(executable)
                         if 'data' in line:
                                 data = line.split()[2]
-                                print(data)
 
         #filename = 'task_example.py' #replace with your file in your home folder
         ftp.storbinary('STOR '+filename, open(filename, 'rb'))
@@ -66,6 +63,12 @@ def get_file():
         ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
         ftp.quit()
         localfile.close()
+
+def save_id(id):
+        conn = sqlite3.connect('db_control.db')
+        conn.execute("INSERT INTO UserID VALUES ("+str(id)+")")
+        conn.commit()
+        conn.close()
 
 def prompt() :
         sys.stdout.write('\nClients addresses - write a')
@@ -97,15 +100,22 @@ if __name__ == "__main__":
                 print('Unable to connect')
                 sys.exit()
 
-        if os.path.isfile('data.db'):
-                d = shelve.open('data.db')
-                client_id = d['id']
-                print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",str(client_id))
-                s.send(str.encode("EXISTING_CONTROL"+str(client_id)))
-                d.close()
-                prompt()
-        else:
-                s.send(str.encode("CONTROL"))
+        conn = sqlite3.connect('db_control.db')
+        cursor = conn.execute("SELECT COUNT(*) FROM UserID")
+        for row in cursor:
+                if row[0] == 0:
+                        print("NEW USER CONNECTED")
+                        s.send(str.encode("CONTROL"))
+                        break
+                else:
+                        cursor2 = conn.execute("SELECT Id FROM UserID")
+                        for data in cursor2:
+                                client_id = data[0]
+                                print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",str(client_id))
+                                s.send(str.encode("EXISTING_CONTROL"+str(client_id)))
+                                break
+                break
+        conn.close()
 
         while 1:
                 socket_list = [sys.stdin, s]
@@ -118,7 +128,6 @@ if __name__ == "__main__":
                         if read_sockets[x] == s:
                                 data = read_sockets[x].recv(4096)
                                 if not data :
-                                        #print('won\'t disconnect')
                                         print('\nDisconnected from chat server')
                                         sys.exit()
                                 elif (data.decode().startswith('a')):
@@ -138,9 +147,7 @@ if __name__ == "__main__":
                                 elif data.decode().startswith('CONTROL_ID'):
                                         print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",data.decode()[10:])
                                         client_id = int(data.decode()[10:])
-                                        d = shelve.open('data.db')
-                                        d['id'] = client_id
-                                        d.close()
+                                        save_id(client_id)
                                         prompt()
                                 elif data.decode().startswith('CONFIRM'):
                                         digits = 0

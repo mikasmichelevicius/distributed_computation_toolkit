@@ -47,7 +47,6 @@ def remove_datafile(submit_file, task_dir):
                                 executable = line.split()[2]
                         if 'data' in line:
                                 data = line.split()[2]
-                                print(data)
         if data is not None:
                 os.remove(data)
         os.remove(executable)
@@ -95,7 +94,6 @@ def send_results(task_dir, submit_file, execution_sock):
         user_return = control_clients[user_id]
 
         exec_time = (time.time() - execution_time[task_dir])/60
-        print("EXECUTION TIME IS HERE=======", exec_time, "==============")
         update_exec_times(task_dir, exec_time)
 
         if user_return in CONNECTIONS:
@@ -164,7 +162,6 @@ def send_to_execute (filename, sock, task_no):
         directory = "TASK"+str(task_no)
         parent_dir = os.getcwd()
         path = os.path.join(parent_dir, directory)
-        print(path)
         os.mkdir(path)
 
         for id, user in control_clients.items():
@@ -178,10 +175,8 @@ def send_to_execute (filename, sock, task_no):
                 for line in file:
                         if 'executable' in line:
                                 executable = line.split()[2]
-                                print(executable)
                         if 'data' in line:
                                 data = line.split()[2]
-                                print(data)
 
         shutil.move(filename, directory)
         shutil.move(executable, directory)
@@ -189,7 +184,6 @@ def send_to_execute (filename, sock, task_no):
                 shutil.move(data, directory)
 
         submit_msg = directory + filename
-        print(submit_msg)
 
         socket_to_execute = None
         for socket in AVAIL_CONNECTIONS:
@@ -298,7 +292,6 @@ def get_task_no():
         conn = sqlite3.connect('db_server.db')
         cursor = conn.execute("SELECT TasksCount FROM Tasks")
         for row in cursor:
-                print("TASK COUNT:", row[0])
                 ret = row[0]
                 conn.close()
                 return ret
@@ -307,7 +300,6 @@ def get_control_no():
         conn = sqlite3.connect('db_server.db')
         cursor = conn.execute("SELECT UsersCount FROM Ucount")
         for row in cursor:
-                print("USERS COUNT:", row[0])
                 ret = row[0]
                 conn.close()
                 return ret
@@ -409,7 +401,6 @@ if __name__ == "__main__":
                                                 digits = 1
                                                 while data.decode()[8+digits].isdigit():
                                                         digits += 1
-                                                        print('MULTIPLE DIGITS')
 
                                                 send_results(data.decode()[4:8+digits],data.decode()[8+digits:],sock)
 
@@ -432,9 +423,6 @@ if __name__ == "__main__":
                                                         control_clients[control_count] = sock
                                                         control_count += 1
                                                         update_control_no()
-                                                        # d = shelve.open('data.db')
-                                                        # d['id_count'] = control_count
-                                                        # d.close()
 
                                                 new_user(control_count-1)
 
@@ -450,10 +438,8 @@ if __name__ == "__main__":
 
                                         elif data.decode().startswith('EXISTING_CONTROL'):
                                                 control_clients[int(data.decode()[16:])] = sock
-                                                # control_clients[sock] = int(data.decode()[16:])
                                                 if sock in AVAIL_CONNECTIONS:
                                                         AVAIL_CONNECTIONS.remove(sock)
-                                                # print("CONTROL CLIENT ID IS:",control_clients[sock])
                                                 print("CONTROL CLIENT ID IS:",int(data.decode()[16:]))
                                                 if len(tasks_to_return) > 0:
                                                         sock.send(str.encode("RETRIEVE"))
