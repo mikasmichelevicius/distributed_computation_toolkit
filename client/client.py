@@ -1,4 +1,4 @@
-import socket, select, string, sys, os, shutil, subprocess, time
+import socket, select, string, sys, os, shutil, subprocess, time, io
 from ftplib import FTP
 
 
@@ -6,9 +6,11 @@ def prompt() :
         sys.stdout.write('\n<Client> ')
         sys.stdout.flush()
 
-def results_to_server(task_dir, filename):
+def results_to_server(task_dir, filename, data):
         result_files = os.listdir(task_dir)
         result_files.remove(filename)
+        if data in result_files:
+                result_files.remove(data)
         print(result_files)
 
         ftp = FTP('')
@@ -34,38 +36,76 @@ def get_file(filename,task_dir):
 
         localfile = open(task_dir+"/"+filename, 'wb')
         ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
-        ftp.quit()
         localfile.close()
+
+        executable = None
+        data = None
+
+        current = os.getcwd()
+        os.chdir(os.path.join(current, task_dir))
+
+        with open(filename) as file:
+                for line in file:
+                        if 'executable' in line:
+                                executable = line.split()[2]
+                                print(executable)
+                        if 'data' in line:
+                                data = line.split()[2]
+                                print(data)
+        os.chdir(current)
+        localfile = open(task_dir+"/"+executable, 'wb')
+        ftp.retrbinary('RETR ' + executable, localfile.write, 1024)
+        localfile.close()
+
+        if data is not None:
+                localfile = open(task_dir+"/"+data, 'wb')
+                ftp.retrbinary('RETR ' + data, localfile.write, 1024)
+                localfile.close()
+
+        ftp.quit()
 
 def execute_task(submit_msg,s,digits):
         task_dir = submit_msg[:4+digits]
         task_no = int(submit_msg[4:4+digits])
         print(task_no,'====================')
-        filename = submit_msg[4+digits:]
-        get_file(filename, task_dir)
+        submit_file = submit_msg[4+digits:]
+        get_file(submit_file, task_dir)
 
-        run_program = "python " + task_dir+"/"+filename + " > " + task_dir+"/stdout.txt"
+        current = os.getcwd()
+        os.chdir(os.path.join(os.getcwd(), task_dir))
+        data = None
+        with open(submit_file) as file:
+                for line in file:
+                        if 'executable' in line:
+                                filename = line.split()[2]
+                        if 'data' in line:
+                                data = line.split()[2]
+
+        # run_program = "python " + task_dir+"/"+filename + " > " + task_dir+"/stdout.txt"
+        run_program = "python " +filename + " > stdout.txt"
         start_time = time.time()
         proc = subprocess.Popen(run_program, stderr=subprocess.PIPE, shell=True)
         total_time = time.time() - start_time
         (out, err) = proc.communicate()
-        err_file = open(task_dir+"/stderr.txt", "w")
+        # err_file = open(task_dir+"/stderr.txt", "w")
+        err_file = open("stderr.txt", "w")
         if proc.returncode == 0:
                 status = "Successful"
         else:
                 status = "Unsuccessful"
-        err_file.write("Program Execution Was " + status+ "!\n")
+        err_file.write("Program Execution Was " + status+ "!\n\n")
         if err:
                 err_file.write(err.decode())
         err_file.close()
-        run_file = open(task_dir+"/runtime.txt", "w")
+        # run_file = open(task_dir+"/runtime.txt", "w")
+        run_file = open("runtime.txt", "w")
         run_file.write(str("{:.2f}".format(time.time() - start_time))+" SECONDS")
         run_file.close()
-        results_to_server(task_dir, filename)
+        os.chdir(current)
+        results_to_server(task_dir, filename, data)
         print('RESPONDING TO SERVER ABOUT COMPLETION')
-        resp_mesg = "DONE"+task_dir
+        resp_mesg = "DONE"+task_dir+submit_file
         print(s.send(str.encode(resp_mesg)))
-
 
 def return_stats(s):
 

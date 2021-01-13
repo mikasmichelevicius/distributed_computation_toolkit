@@ -1,5 +1,20 @@
 import socket, select, os, shutil, time, shelve
 
+def remove_datafile(submit_file, task_dir):
+        current = os.getcwd()
+        os.chdir(os.path.join(current, task_dir))
+        data = None
+        with open(submit_file) as file:
+                for line in file:
+                        if 'data' in line:
+                                data = line.split()[2]
+                                print(data)
+                                break
+        if data is not None:
+                os.remove(data)
+
+        os.chdir(current)
+
 def job_status(sock):
         print('Listing running and queued tasks')
         message = "JOB-status\nACTIVE:\n"
@@ -35,7 +50,8 @@ def execute_queued():
                 task_no = x[4:]
                 send_to_execute_queued(x)
 
-def send_results(task_dir, execution_sock):
+def send_results(task_dir, submit_file, execution_sock):
+        remove_datafile(submit_file, task_dir)
         user_id = task_user_map[task_dir]
         user_return = control_clients[user_id]
         if user_return in CONNECTIONS:
@@ -112,9 +128,24 @@ def send_to_execute (filename, sock, task_no):
                         task_user_map[directory] = id
                         break
 
+        executable = None
+        data = None
+        with open(filename) as file:
+                for line in file:
+                        if 'executable' in line:
+                                executable = line.split()[2]
+                                print(executable)
+                        if 'data' in line:
+                                data = line.split()[2]
+                                print(data)
+
         shutil.move(filename, directory)
+        shutil.move(executable, directory)
+        if data is not None:
+                shutil.move(data, directory)
 
         submit_msg = directory + filename
+        print(submit_msg)
 
         socket_to_execute = None
         for socket in AVAIL_CONNECTIONS:
@@ -229,7 +260,7 @@ if __name__ == "__main__":
                 control_count = 0
                 d.close()
         # List to keep track of socket descriptors
-        task_count = 1
+        task_count = 12
         # control_count = 1
         CONNECTIONS = []
         AVAIL_CONNECTIONS = []
@@ -301,7 +332,12 @@ if __name__ == "__main__":
                                                 job_status(sock)
 
                                         elif data.decode().startswith('DONE'):
-                                                send_results(data.decode()[4:],sock)
+                                                digits = 1
+                                                while data.decode()[8+digits].isdigit():
+                                                        digits += 1
+                                                        print('MULTIPLE DIGITS')
+
+                                                send_results(data.decode()[4:8+digits],data.decode()[8+digits:],sock)
 
                                         elif data.decode().startswith('FINISH'):
                                                 finish_task(data.decode()[6:])
@@ -325,11 +361,6 @@ if __name__ == "__main__":
                                                         d['id_count'] = control_count
                                                         d.close()
 
-                                                # control_clients[control_count] = sock
-                                                # control_count += 1
-                                                # d = shelve.open('data.db')
-                                                # d['id_count'] = control_count
-                                                # d.close()
 
                                                 if sock in AVAIL_CONNECTIONS:
                                                         AVAIL_CONNECTIONS.remove(sock)

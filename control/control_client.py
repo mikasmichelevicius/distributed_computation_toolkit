@@ -35,9 +35,24 @@ def send_file(sub_file):
         ftp.login()
         ftp.cwd('') #replace with your directory
         #ftp.retrlines('LIST')
+        executable = None
+        data = None
         filename = sub_file
+        with open(filename, 'r') as file:
+                print(file)
+                for line in file:
+                        if 'executable' in line:
+                                executable = line.split()[2]
+                                print(executable)
+                        if 'data' in line:
+                                data = line.split()[2]
+                                print(data)
+
         #filename = 'task_example.py' #replace with your file in your home folder
         ftp.storbinary('STOR '+filename, open(filename, 'rb'))
+        ftp.storbinary('STOR '+executable, open(executable, 'rb'))
+        if data is not None:
+                ftp.storbinary('STOR '+data, open(data, 'rb'))
         ftp.quit()
 
 def get_file():
@@ -142,7 +157,9 @@ if __name__ == "__main__":
                                 msg = sys.stdin.readline().replace('\n','')
                                 if (msg.startswith('SUBMIT')):
 
-                                        is_valid = does_compile(msg[7:])
+                                        # CHECK IF EXECUTABLE COMPILES ================================
+                                        # is_valid = does_compile(msg[7:])
+                                        is_valid = True
                                         if is_valid:
                                                 send_file(msg[7:])
                                                 s.send(str.encode(msg))
