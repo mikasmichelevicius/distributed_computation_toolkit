@@ -113,6 +113,7 @@ if __name__ == "__main__":
                                 client_id = data[0]
                                 print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",str(client_id))
                                 s.send(str.encode("EXISTING_CONTROL"+str(client_id)))
+                                prompt()
                                 break
                 break
         conn.close()

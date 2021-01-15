@@ -1,5 +1,6 @@
 import socket, select, os, shutil, time, shelve, sqlite3
 
+
 def enqueue(directory, id):
         print(directory, "OF USER WITH ID", id, "IS ADDED TO QUEUE")
         if not queued_tasks:
@@ -16,15 +17,26 @@ def update_queue():
                 user_exec_time[row[0]] = row[1]
         conn.close()
 
+
+        print("===================BEFORE UPDATING===================")
+        print(queued_tasks)
+        print("=====================================================")
         priority = len(queued_tasks)-1
         id = task_user_map[queued_tasks[len(queued_tasks)-1]]
         for i in range(len(queued_tasks)-2, -1, -1):
                 temp_id = task_user_map[queued_tasks[i]]
-                if user_exec_time[temp_id] <= user_exec_time[id]:
+                if temp_id == id:
+                        priority = i
+                elif user_exec_time[temp_id] <= user_exec_time[id]:
                         priority = i
                         id = temp_id
         if priority != 0:
-                queued_tasks[0], queued_tasks[priority] = queued_tasks[priority], queued_tasks[0]
+                # queued_tasks[0], queued_tasks[priority] = queued_tasks[priority], queued_tasks[0]
+                queued_tasks.insert(0,queued_tasks.pop(priority))
+
+        print("===================AFTER UPDATING====================")
+        print(queued_tasks)
+        print("=====================================================")
 
 def update_exec_times(task_dir, time):
         user_id = task_user_map[task_dir]
