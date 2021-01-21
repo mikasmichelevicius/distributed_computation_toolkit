@@ -1,4 +1,4 @@
-import socket, select, os, shutil, time, shelve, sqlite3
+import socket, select, os, shutil, time, shelve, sqlite3, smtplib, ssl
 
 
 def enqueue(directory, id):
@@ -116,6 +116,7 @@ def send_results(task_dir, submit_file, execution_sock):
                 del task_user_map[task_dir]
                 user_return.send(str.encode("DONE"+task_dir))
         else:
+                send_email(user_id, task_dir, exec_time)
                 running_tasks.pop(execution_sock.getpeername())
                 start_time = execution_time[task_dir]
                 execution_time[task_dir] = time.time() - start_time
@@ -330,9 +331,43 @@ def update_control_no():
 
 def new_user(id):
         conn = sqlite3.connect('db_server.db')
-        conn.execute("INSERT INTO Users VALUES ("+str(id)+", 0)")
+        conn.execute("INSERT INTO Users VALUES ("+str(id)+", 0, '')")
         conn.commit()
         conn.close()
+
+def update_email(id, email):
+        conn = sqlite3.connect('db_server.db')
+        conn.execute("UPDATE Users SET Mail = '"+email+"' WHERE UserId = " + str(id))
+        conn.commit()
+        conn.close()
+
+def send_email(user_id, task_dir, exec_time):
+        conn = sqlite3.connect('db_server.db')
+        cursor = conn.execute("SELECT Mail FROM Users WHERE UserId = " + str(user_id))
+        for row in cursor:
+                email = row[0]
+                break
+        conn.close()
+        port = 465 # FOR SSL
+        password = "mik@sdev1"
+        # Create a secure SSL context
+        context = ssl.create_default_context()
+        message = """\
+        Subject:Compute Results Notification
+
+
+        Your submitted job """+ task_dir+ """ was executed after """ +str(round(exec_time,2))+""" minutes.
+
+        Go check your results. """
+        sender_email = "mikas.devtest@gmail.com"
+        receiver_email = email
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+                server.login(sender_email, password)
+                # TO DO: send email
+                server.sendmail(sender_email, receiver_email, message)
+        print('email sent')
+
 
 if __name__ == "__main__":
 
@@ -425,6 +460,15 @@ if __name__ == "__main__":
 
                                         elif data.decode().startswith('RETRIEVE'):
                                                 get_waiting_results()
+
+                                        elif data.decode().startswith('EMAIL'):
+                                                update_id = None
+                                                for id, user in control_clients.items():
+                                                        if user == sock:
+                                                                update_id = id
+                                                                break
+                                                update_email(update_id, data.decode()[5:])
+                                                print('email')
 
                                         elif data.decode().startswith('CONTROL'):
                                                 # CONTROL SOCK CONNECTS, ADD TO THE LIST OF THESE SOCKS
