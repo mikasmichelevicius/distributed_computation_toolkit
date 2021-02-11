@@ -149,6 +149,8 @@ if __name__ == "__main__":
                                         print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",data.decode()[10:])
                                         client_id = int(data.decode()[10:])
                                         save_id(client_id)
+                                        email_addr = input("Enter your email address:")
+                                        s.send(str.encode("EMAIL"+email_addr))
                                         prompt()
                                 elif data.decode().startswith('CONFIRM'):
                                         digits = 0

@@ -1,0 +1,10 @@
+{% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
+
+<h1>Register Here</h1>
+<h3>Just fill out the form.</h3><form method="POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <label for="email">Email:</label>
+  <input type="text" name="email" placeholder="Email">
+  <input type="submit" name="" value="Register">
+</form>
