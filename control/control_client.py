@@ -159,6 +159,7 @@ if __name__ == "__main__":
                                         print("\n       ",data.decode()[13+digits:],"SENT FOR EXECUTION AS",data.decode()[8:13+digits])
                                 else :
                                         #print data
+                                        print("AR CIA YRA STATS?")
                                         sys.stdout.write(data.decode())
                                         # prompt()
 

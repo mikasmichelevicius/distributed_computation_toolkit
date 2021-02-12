@@ -254,6 +254,16 @@ def get_statistics(sock):
                                 active_addr.remove(addr)
 
 def send_statistics(message,addr_curr):
+        if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
+                try:
+                        sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
+                except:
+                        sock.close()
+                        CONNECTIONS.remove(socket)
+                        AVAIL_CONNECTIONS.remove(socket)
+                        active_addr.remove(curr_addr)
+                return
+
         if addr_curr not in statistics and addr_curr != control_sock.getpeername():
                 statistics[addr_curr] = message
         try:
@@ -266,7 +276,7 @@ def send_statistics(message,addr_curr):
                 active_addr.remove(addr)
 
 def clients_status (sock,curr_addr):
-        if (len(AVAIL_CONNECTIONS) < 2) and (len(busy_connections) == 0):
+        if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
                 try:
                         sock.send(str.encode("a \n____________________\nNO CLIENTS CONNECTED"))
                 except:
@@ -277,7 +287,7 @@ def clients_status (sock,curr_addr):
                 return
 
         message = "a \nAVAILABLE CLIENTS:\n"
-        if len(AVAIL_CONNECTIONS) > 1:
+        if len(AVAIL_CONNECTIONS) > 0:
                 for socket in AVAIL_CONNECTIONS:
                         if socket != control_sock:
                                 message += "    CLIENT WIHT ADDRESS: "+str(socket.getpeername())+"\n"
@@ -421,8 +431,11 @@ if __name__ == "__main__":
                         #Some incoming message from a client
                         else:
                                 # Data recieved from client, process it
-                                data = sock.recv(RECV_BUFFER)
-                                addr = sock.getpeername()
+                                try:
+                                        data = sock.recv(RECV_BUFFER)
+                                        addr = sock.getpeername()
+                                except:
+                                        print("Cannot recieve data")
                                 if data:
                                         if data.decode() == 'a':
                                                 addr_curr = sock.getpeername()
@@ -503,11 +516,23 @@ if __name__ == "__main__":
                                         elif data.decode() == 's':
                                                 print(len(statistics), len(active_addr))
                                                 if len(statistics) == len(active_addr)-1:
-                                                        message = ""
-                                                        for x in statistics:
-                                                                message += statistics[x]
-                                                        print('Retrieving stored info')
-                                                        send_statistics(message,sock.getpeername())
+                                                        if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
+                                                                try:
+                                                                        sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
+                                                                except:
+                                                                        sock.close()
+                                                                        CONNECTIONS.remove(socket)
+                                                                        AVAIL_CONNECTIONS.remove(socket)
+                                                                        active_addr.remove(curr_addr)
+                                                        else:
+                                                                control_sock = sock
+                                                                get_statistics(sock)
+                                                        # message = ""
+                                                        # for x in statistics:
+                                                        #         message += statistics[x]
+                                                        # print('Retrieving stored info')
+                                                        # print("==============================",sock.getpeername())
+                                                        # send_statistics(message,sock.getpeername())
                                                 else:
                                                         control_sock = sock
                                                         get_statistics(sock)
