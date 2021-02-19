@@ -242,6 +242,7 @@ def broadcast_data (sock, message):
                                 active_addr.remove(addr)
 
 def get_statistics(sock):
+        print("get stats")
         for socket in CONNECTIONS:
                 if socket != server_socket and socket != sock:
                         try:
@@ -254,6 +255,7 @@ def get_statistics(sock):
                                 active_addr.remove(addr)
 
 def send_statistics(message,addr_curr):
+        print("send stats")
         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
                 try:
                         sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
@@ -278,6 +280,7 @@ def send_statistics(message,addr_curr):
 def clients_status (sock,curr_addr):
         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
                 try:
+                        print("try to send empty addresses")
                         sock.send(str.encode("a \n____________________\nNO CLIENTS CONNECTED"))
                 except:
                         sock.close()
@@ -294,7 +297,7 @@ def clients_status (sock,curr_addr):
         else:
                 message += "    NO AVAILABLE CLIENTS RIGHT NOW\n"
 
-        message += "\nBUSY CLIENTS:\n"
+        message += "BUSY CLIENTS:\n"
         if len(busy_connections) > 0:
                 for socket in busy_connections:
                         message += "    CLIENT WITH ADDRESS: "+str(socket.getpeername())+"\n"
@@ -393,7 +396,7 @@ if __name__ == "__main__":
         tasks_to_return = []
         statistics = {}
         RECV_BUFFER = 4096 # Advisable to keep it as an exponent of 2
-        PORT = 5000
+        PORT = 5002
         host_addr = ("0.0.0.0",PORT)
         control_sock = None
         control_clients = {}
@@ -436,8 +439,10 @@ if __name__ == "__main__":
                                         addr = sock.getpeername()
                                 except:
                                         print("Cannot recieve data")
+                                        sock.send(str.encode("error"))
                                 if data:
                                         if data.decode() == 'a':
+                                                print("getting a command")
                                                 addr_curr = sock.getpeername()
                                                 clients_status(sock, addr_curr)
 
@@ -514,12 +519,15 @@ if __name__ == "__main__":
                                                         sock.send(str.encode("RETRIEVE"))
 
                                         elif data.decode() == 's':
+                                                print("getting s command")
                                                 print(len(statistics), len(active_addr))
                                                 if len(statistics) == len(active_addr)-1:
                                                         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
                                                                 try:
+                                                                        print("try to send s")
                                                                         sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
                                                                 except:
+                                                                        print("unsuccessful")
                                                                         sock.close()
                                                                         CONNECTIONS.remove(socket)
                                                                         AVAIL_CONNECTIONS.remove(socket)

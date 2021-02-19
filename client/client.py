@@ -132,9 +132,9 @@ def return_stats(s):
         work_dir = os.getcwd()
         stat = shutil.disk_usage(work_dir)
 
-        stats_details = "ret_ss\n ------\nClient "+str(s.getsockname())+" statistics:\nMemory in MB:\nTotal:"+str(int(int(total)/1000))+", Free:"+str(int(int(free)/1000))+", Available:"+str(int(int(available)/1000))+"\n"
+        stats_details = "ret_ss\n Client "+str(s.getsockname())+" statistics:\nMemory in MB:\nTotal:"+str(int(int(total)/1000))+", Free:"+str(int(int(free)/1000))+", Available:"+str(int(int(available)/1000))+"\n"
         stats_details += "CPU info:\nCore(s):"+cores+", Thread(s):"+str(int(int(siblings)/int(cores)))+", Core(s) with hyper-threading:"+siblings
-        stats_details += "\nDisk usage in KB:\n"+str(stat)+"\n ------\n"
+        stats_details += "\nDisk usage in KB:\n"+str(stat)+"\n"
         s.send(str.encode(stats_details))
 
 #main function

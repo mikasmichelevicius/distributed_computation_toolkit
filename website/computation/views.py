@@ -6,78 +6,139 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
-import socket, select, string, sys, py_compile, os, shelve, sqlite3
+import socket, select, string, sys, py_compile, os, shelve, sqlite3, time
 from ftplib import FTP
+from subprocess import run
 
 def prompt(request):
     username = request.user.username
     message = "You are connected to the server"
     return render(request, 'computation/home.html', {'username' : username, 'message': message})
 
+def trigger_sock():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    address = ("0.0.0.0",5000)
+    sock.connect_ex(address)
+    sock.close()
 
 def home(request):
-    print("HOME ENTERED")
     username = request.user.username
-    addresses = None
-    statistics = None
-    tasks_count = 1
-    client_id = None
-    host = "0.0.0.0"
-    port = 5000
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(2)
-    # connect to remote host
-    try :
-        s.connect((host, port))
-    except :
-        message = "Server is currently closed."
-        return render(request, 'computation/home.html', {'username' : username, 'message': message})
-        print('Unable to connect')
-        sys.exit()
+    addresses = ""
+    statistics = ""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    address = ("0.0.0.0",5002)
+    is_running = sock.connect_ex(address)
+    sock.close()
+    if is_running == 0:
+        with open("fileA.txt", "w") as fileA:
+            fileA.write("s")
+        trigger_sock()
+        while True:
+            with open("fileB.txt", "r+") as fileB:
+                if fileB.read(1):
+                    fileB.seek(0,0)
+                    statistics = fileB.readlines()
+                    print("==========", statistics)
+                    fileB.truncate(0)
+                    break
 
-    conn = sqlite3.connect('db_control.db')
-    cursor = conn.execute("SELECT COUNT(*) FROM UserID")
-    for row in cursor:
-        if row[0] == 0:
-            print("NEW USER CONNECTED")
-            s.send(str.encode("CONTROL"))
-            break
-        else:
-            cursor2 = conn.execute("SELECT Id FROM UserID")
-            for data in cursor2:
-                client_id = data[0]
-                print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",str(client_id))
-                s.send(str.encode("EXISTING_CONTROL"+str(client_id)))
-                # prompt(request)
-                break
-        break
-    conn.close()
-    s.send(str.encode("a"))
-    while 1:
-        socket_list = [sys.stdin, s]
-        read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [], 0)
-        for x in range(0, len(read_sockets)):
-            if read_sockets[x] == s:
-                data = read_sockets[x].recv(4096)
-                if not data:
-                    print('\nDisconnected from server')
-                    sys.exit();
-                elif (data.decode().startswith('a')):
-                    addresses = data.decode()[1:]
-                    s.send(str.encode("s"))
-                elif (data.decode().startswith('s')):
-                    statistics = data.decode()[1:]
+        print("loop1 passed")
+            # if os.stat('fileB.txt').st_size != 0:
+            #     fileB = open('fileB.txt', 'r+')
+            #     statistics = fileB.readlines()
+            #     print("==========", statistics)
+            #     fileB.truncate(0)
+            #     fileB.close()
+            #     break
+        with open("fileA.txt", "w") as fileA:
+            fileA.write("a")
+        trigger_sock()
+        while True:
+            with open("fileB.txt", "r+") as fileB:
+                if fileB.read(1):
+                    fileB.seek(0,0)
+                    addresses = fileB.readlines()
+                    print("==========", addresses)
+                    fileB.truncate(0)
+                    break
+        print("loop2 passed")
+            # if os.stat('fileB.txt').st_size != 0:
+            #     fileB = open('fileB.txt', 'r+')
+            #     addresses = fileB.readlines()
+            #     print("+++++++++", addresses)
+            #     fileB.truncate(0)
+            #     fileB.close()
+            #     break
 
-        if addresses is not None and statistics is not None:
-            s.shutdown(socket.SHUT_WR)
-            s.close()
-            break
-
-    print(addresses)
-    print(statistics)
-    print("Port is open")
-    message = "You are connected to the server."
-    return render(request, 'computation/home.html', {'username' : username, 'message': message, 'addresses' : addresses, 'statistics' : statistics})
+        message = "You are connected to the server"
+        context = {'username' : username, 'message' : message, 'addresses' : addresses, 'statistics' : statistics}
+        return render(request, 'computation/home.html', context)
+    else:
+        print("Server is not running")
+        message = "Server is currently closed"
+        return render(request, 'computation/home.html', {'username' : username, 'message': message, 'addresses' : addresses, 'statistics' : statistics})
+    # print("HOME ENTERED")
+    # username = request.user.username
+    # addresses = None
+    # statistics = None
+    # tasks_count = 1
+    # client_id = None
+    # host = "0.0.0.0"
+    # port = 5000
+    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # s.settimeout(2)
+    # # connect to remote host
+    # try :
+    #     s.connect((host, port))
+    # except :
+    #     message = "Server is currently closed."
+    #     return render(request, 'computation/home.html', {'username' : username, 'message': message})
+    #     print('Unable to connect')
+    #     sys.exit()
+    #
+    # conn = sqlite3.connect('db_control.db')
+    # cursor = conn.execute("SELECT COUNT(*) FROM UserID")
+    # for row in cursor:
+    #     if row[0] == 0:
+    #         print("NEW USER CONNECTED")
+    #         s.send(str.encode("CONTROL"))
+    #         break
+    #     else:
+    #         cursor2 = conn.execute("SELECT Id FROM UserID")
+    #         for data in cursor2:
+    #             client_id = data[0]
+    #             print("\n\n            CONNECTED TO THE SERVER.\n            YOUR ID IS:",str(client_id))
+    #             s.send(str.encode("EXISTING_CONTROL"+str(client_id)))
+    #             # prompt(request)
+    #             break
+    #     break
+    # conn.close()
+    # s.send(str.encode("a"))
+    # while 1:
+    #     socket_list = [sys.stdin, s]
+    #     read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [], 0)
+    #     for x in range(0, len(read_sockets)):
+    #         if read_sockets[x] == s:
+    #             data = read_sockets[x].recv(4096)
+    #             if not data:
+    #                 print('\nDisconnected from server')
+    #                 sys.exit();
+    #             elif (data.decode().startswith('a')):
+    #                 addresses = data.decode()[1:]
+    #                 s.send(str.encode("s"))
+    #             elif (data.decode().startswith('s')):
+    #                 statistics = data.decode()[1:]
+    #
+    #     if addresses is not None and statistics is not None:
+    #         s.shutdown(socket.SHUT_WR)
+    #         s.close()
+    #         break
+    #
+    # print(addresses)
+    # print(statistics)
+    # print("Port is open")
+    # message = "You are connected to the server."
+    # return render(request, 'computation/home.html', {'username' : username, 'message': message, 'addresses' : addresses, 'statistics' : statistics})
     # return HttpResponse("You are logged in.")
 
 def login_user(request):
