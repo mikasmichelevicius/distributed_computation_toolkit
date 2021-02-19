@@ -165,6 +165,9 @@ if __name__ == "__main__":
                                         get_results(data.decode()[6:],s)
 
                                 elif data.decode().startswith('JOB-status'):
+                                        with open("fileB.txt", "w") as fileB:
+                                                fileB.write(data.decode()[10:])
+                                                print("Job status written to file")
                                         sys.stdout.write(data.decode()[10:])
                                 elif data.decode().startswith('RETRIEVE'):
                                         print("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED FROM SERVER\n")

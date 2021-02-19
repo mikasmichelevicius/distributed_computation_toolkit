@@ -17,9 +17,68 @@ def prompt(request):
 
 def trigger_sock():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    address = ("0.0.0.0",5000)
-    sock.connect_ex(address)
+    address = ("0.0.0.0",5002)
+    ret = sock.connect_ex(address)
     sock.close()
+    return ret
+
+def queue(request):
+    queue_info = ""
+    with open("fileA.txt", "w") as fileA:
+        fileA.write("JOB-status")
+    is_running = trigger_sock()
+    if is_running == 0:
+        while True:
+            with open("fileB.txt", "r+") as fileB:
+                if fileB.read(1):
+                    fileB.seek(0,0)
+                    queue_info = fileB.readlines()
+                    print("==========", queue_info)
+                    fileB.truncate(0)
+                    break
+    else:
+        return render(request, 'computation/queue.html', {'error_message':"Server is currently closed"})
+    context = {'queue_info':queue_info}
+    return render(request, 'computation/queue.html', context)
+
+def params(request):
+    statistics = ""
+    with open("fileA.txt", "w") as fileA:
+        fileA.write("s")
+    is_running = trigger_sock()
+    if is_running == 0:
+        while True:
+            with open("fileB.txt", "r+") as fileB:
+                if fileB.read(1):
+                    fileB.seek(0,0)
+                    statistics = fileB.readlines()
+                    print("==========", statistics)
+                    fileB.truncate(0)
+                    break
+    else:
+        return render(request, 'computation/params.html', {'error_message':"Server is currently closed"})
+    context = {'statistics':statistics}
+    return render(request, 'computation/params.html', context)
+
+
+def clients(request):
+    addresses = ""
+    with open("fileA.txt", "w") as fileA:
+        fileA.write("a")
+    is_running = trigger_sock()
+    if is_running == 0:
+        while True:
+            with open("fileB.txt", "r+") as fileB:
+                if fileB.read(1):
+                    fileB.seek(0,0)
+                    addresses = fileB.readlines()
+                    print("==========", addresses)
+                    fileB.truncate(0)
+                    break
+    else:
+        return render(request, 'computation/params.html', {'error_message':"Server is currently closed"})
+    context = {'addresses':addresses}
+    return render(request, 'computation/clients.html', context)
 
 def home(request):
     username = request.user.username
@@ -30,48 +89,8 @@ def home(request):
     is_running = sock.connect_ex(address)
     sock.close()
     if is_running == 0:
-        with open("fileA.txt", "w") as fileA:
-            fileA.write("s")
-        trigger_sock()
-        while True:
-            with open("fileB.txt", "r+") as fileB:
-                if fileB.read(1):
-                    fileB.seek(0,0)
-                    statistics = fileB.readlines()
-                    print("==========", statistics)
-                    fileB.truncate(0)
-                    break
-
-        print("loop1 passed")
-            # if os.stat('fileB.txt').st_size != 0:
-            #     fileB = open('fileB.txt', 'r+')
-            #     statistics = fileB.readlines()
-            #     print("==========", statistics)
-            #     fileB.truncate(0)
-            #     fileB.close()
-            #     break
-        with open("fileA.txt", "w") as fileA:
-            fileA.write("a")
-        trigger_sock()
-        while True:
-            with open("fileB.txt", "r+") as fileB:
-                if fileB.read(1):
-                    fileB.seek(0,0)
-                    addresses = fileB.readlines()
-                    print("==========", addresses)
-                    fileB.truncate(0)
-                    break
-        print("loop2 passed")
-            # if os.stat('fileB.txt').st_size != 0:
-            #     fileB = open('fileB.txt', 'r+')
-            #     addresses = fileB.readlines()
-            #     print("+++++++++", addresses)
-            #     fileB.truncate(0)
-            #     fileB.close()
-            #     break
-
         message = "You are connected to the server"
-        context = {'username' : username, 'message' : message, 'addresses' : addresses, 'statistics' : statistics}
+        context = {'username' : username, 'message' : message}
         return render(request, 'computation/home.html', context)
     else:
         print("Server is not running")
