@@ -6,7 +6,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+from django.core.files.storage import FileSystemStorage
 import socket, select, string, sys, py_compile, os, shelve, sqlite3, time
+from django.utils.datastructures import MultiValueDictKeyError
 from ftplib import FTP
 from subprocess import run
 
@@ -22,8 +24,47 @@ def trigger_sock():
     sock.close()
     return ret
 
+def submit(request):
+    if request.method == "POST":
+        try:
+            executable = request.FILES['executable']
+        except MultiValueDictKeyError:
+            executable = None
+        try:
+            dataset = request.FILES['dataset']
+        except MultiValueDictKeyError:
+            dataset = None
+
+        email = request.POST['email']
+        print("email====", email)
+        
+        if executable is not None:
+            fs = FileSystemStorage()
+            fs.save(executable.name, executable)
+        else:
+            print("Executable not uploaded")
+        if dataset is not None:
+            fsd = FileSystemStorage()
+            fsd.save(dataset.name, dataset)
+        else:
+            print("Dataset not uploaded")
+
+
+        with open("submit_file.txt", "w") as submit_file:
+            submit_file.write("executable = "+executable.name+"\n")
+            if dataset is not None:
+                submit_file.write("data = "+dataset.name+"\n")
+
+        with open("fileA.txt", "w") as fileA:
+            fileA.write("SUBMIT submit_file.txt")
+            fileA.flush()
+        is_running = trigger_sock()
+    context = {}
+    return render(request, 'computation/submit.html', context)
+
 def queue(request):
     queue_info = ""
+    error_message = "Server is currently closed"
     with open("fileA.txt", "w") as fileA:
         fileA.write("JOB-status")
     is_running = trigger_sock()
@@ -33,11 +74,16 @@ def queue(request):
                 if fileB.read(1):
                     fileB.seek(0,0)
                     queue_info = fileB.readlines()
-                    print("==========", queue_info)
-                    fileB.truncate(0)
-                    break
+                    if len(queue_info)>0 and queue_info[0].startswith("jobs"):
+                        print("==========", queue_info)
+                        fileB.seek(0,0)
+                        fileB.truncate(0)
+                        break
+                    else:
+                        error_message = "Please refresh the page for the information."
+                        return render(request, 'computation/queue.html', {'error_message':error_message})
     else:
-        return render(request, 'computation/queue.html', {'error_message':"Server is currently closed"})
+        return render(request, 'computation/queue.html', {'error_message':error_message})
     context = {'queue_info':queue_info}
     return render(request, 'computation/queue.html', context)
 
@@ -52,9 +98,14 @@ def params(request):
                 if fileB.read(1):
                     fileB.seek(0,0)
                     statistics = fileB.readlines()
-                    print("==========", statistics)
-                    fileB.truncate(0)
-                    break
+                    if len(statistics)>0 and statistics[0].startswith("stats"):
+                        print("==========", statistics)
+                        fileB.seek(0,0)
+                        fileB.truncate(0)
+                        break
+                    else:
+                        error_message = "Please refresh the page for the information."
+                        return render(request, 'computation/params.html', {'error_message':error_message})
     else:
         return render(request, 'computation/params.html', {'error_message':"Server is currently closed"})
     context = {'statistics':statistics}
@@ -72,11 +123,17 @@ def clients(request):
                 if fileB.read(1):
                     fileB.seek(0,0)
                     addresses = fileB.readlines()
-                    print("==========", addresses)
-                    fileB.truncate(0)
-                    break
+                    if len(addresses) > 0 and addresses[0].startswith("addr"):
+                        print("==========", addresses)
+                        fileB.seek(0,0)
+                        fileB.truncate(0)
+                        print("DELETED")
+                        break
+                    else:
+                        error_message = "Please refresh the page for the information."
+                        return render(request, 'computation/clients.html', {'error_message':error_message})
     else:
-        return render(request, 'computation/params.html', {'error_message':"Server is currently closed"})
+        return render(request, 'computation/clients.html', {'error_message':"Server is currently closed"})
     context = {'addresses':addresses}
     return render(request, 'computation/clients.html', context)
 

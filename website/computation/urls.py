@@ -1,4 +1,5 @@
-
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path, include
 from django.contrib import admin
 from . import views
@@ -10,6 +11,9 @@ urlpatterns = [
         path('clients/', views.clients, name='clients'),
         path('params/', views.params, name='params'),
         path('queue/', views.queue, name='queue'),
+        path('submit/', views.submit, name='submit'),
         path('login_user/', views.login_user, name = 'login_user'),
         path('sign_up/', views.sign_up, name = 'sign_up'),
         ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

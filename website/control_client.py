@@ -51,6 +51,10 @@ def send_file(sub_file):
         if data is not None:
                 ftp.storbinary('STOR '+data, open(data, 'rb'))
         ftp.quit()
+        os.remove(sub_file)
+        os.remove(executable)
+        if data is not None:
+                os.remove(data)
 
 def get_file():
         ftp = FTP('')
@@ -91,7 +95,7 @@ if __name__ == "__main__":
         port = int(sys.argv[2])
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(2)
+        # s.settimeout(2)
 
         # connect to remote host
         try :
@@ -122,17 +126,25 @@ if __name__ == "__main__":
                 socket_list = [sys.stdin, s]
 
                 # Get the list sockets which are readable
-                read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
+                read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [], 1)
 
                 for x in range(0,len(read_sockets)):
 
                         with open("fileA.txt", "r+") as file:
+                                print("FILE OPENED")
                                 if file.read(1):
                                         file.seek(0,0)
                                         input_command = file.read()
                                         print("command",input_command,"received")
                                         file.truncate(0)
-                                        s.send(str.encode(input_command))
+                                        if input_command.startswith("SUBMIT"):
+                                                is_valid=True
+                                                if is_valid:
+                                                        send_file(input_command[7:])
+                                                        s.send(str.encode(input_command))
+
+                                        else:
+                                                s.send(str.encode(input_command))
 
                         #incoming message from remote server
                         if read_sockets[x] == s:
@@ -142,7 +154,7 @@ if __name__ == "__main__":
                                         sys.exit()
                                 elif (data.decode().startswith('a')):
                                         with open("fileB.txt", "w") as fileB:
-                                                fileB.write(data.decode()[3:])
+                                                fileB.write("addr\n"+data.decode()[3:])
                                                 print("command a written to file")
                                         # sys.stdout.write(data.decode()[1:])
                                         # prompt()
@@ -157,7 +169,8 @@ if __name__ == "__main__":
                                 elif data.decode().startswith('s'):
                                         print("received s results")
                                         with open("fileB.txt", "w") as fileB:
-                                                fileB.write(data.decode()[3:])
+                                                fileB.write("stats\n"+data.decode()[3:])
+                                                fileB.flush()
                                                 print("command s written to file")
                                         # sys.stdout.write(data.decode()[1:])
 
@@ -166,7 +179,7 @@ if __name__ == "__main__":
 
                                 elif data.decode().startswith('JOB-status'):
                                         with open("fileB.txt", "w") as fileB:
-                                                fileB.write(data.decode()[10:])
+                                                fileB.write("jobs\n"+data.decode()[10:])
                                                 print("Job status written to file")
                                         sys.stdout.write(data.decode()[10:])
                                 elif data.decode().startswith('RETRIEVE'):

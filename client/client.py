@@ -108,7 +108,7 @@ def execute_task(submit_msg,s,digits):
         print(s.send(str.encode(resp_mesg)))
 
 def return_stats(s):
-
+        print("Collecting statistics")
         with open('/proc/meminfo') as file:
                 for line in file:
                         if 'MemTotal' in line:

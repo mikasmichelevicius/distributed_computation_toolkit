@@ -266,8 +266,9 @@ def send_statistics(message,addr_curr):
                         active_addr.remove(curr_addr)
                 return
 
-        if addr_curr not in statistics and addr_curr != control_sock.getpeername():
-                statistics[addr_curr] = message
+        # if addr_curr not in statistics and addr_curr != control_sock.getpeername():
+        #         statistics[addr_curr] = message
+        message = "\n".join(statistics.values())
         try:
                 control_sock.send(str.encode(message))
         except:
@@ -418,7 +419,7 @@ if __name__ == "__main__":
 
         while 1:
                 # Get the list sockets which are ready to be read through select
-                read_sockets,write_sockets,error_sockets = select.select(CONNECTIONS,[],[])
+                read_sockets,write_sockets,error_sockets = select.select(CONNECTIONS,[],[], 1)
 
                 for sock in read_sockets:
                         #New connection
@@ -474,6 +475,8 @@ if __name__ == "__main__":
 
 
                                         elif data.decode().startswith('ret_s'):
+                                                print("adding to statistics")
+                                                statistics[sock.getpeername()] = data.decode()[5:]
                                                 send_statistics(data.decode()[5:],sock.getpeername())
 
                                         elif data.decode().startswith('RETRIEVE'):
