@@ -12,6 +12,8 @@ urlpatterns = [
         path('params/', views.params, name='params'),
         path('queue/', views.queue, name='queue'),
         path('submit/', views.submit, name='submit'),
+        path('completed/', views.completed, name='completed'),
+        path('details/<str:job>/', views.details, name='details'),
         path('login_user/', views.login_user, name = 'login_user'),
         path('sign_up/', views.sign_up, name = 'sign_up'),
         ]

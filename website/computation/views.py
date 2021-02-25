@@ -24,6 +24,28 @@ def trigger_sock():
     sock.close()
     return ret
 
+def details(request, job):
+    print("DETAILS ENTERED")
+    with open(job+"/stderr.txt", "r+") as errfile:
+        stderr = errfile.readlines()
+    with open(job+"/stdout.txt", "r+") as outfile:
+        stdout = outfile.readlines()
+    with open(job+"/submit_file.txt", "r+") as subfile:
+        submitted = subfile.readlines()
+    for i in range(len(submitted)):
+        submitted[i] = submitted[i].split()[2]
+
+    context = {'job_dir': job, 'stderr':stderr, 'stdout':stdout, 'submitted':submitted}
+    return render(request, 'computation/details.html', context)
+
+def completed(request):
+    all_dirs = os.listdir()
+    job_dirs = [x for x in all_dirs if x.startswith("TASK")]
+    print(all_dirs)
+    print(job_dirs)
+    job_dirs.sort(reverse=True)
+    return render(request, 'computation/completed.html', {'jobs':job_dirs})
+
 def submit(request):
     if request.method == "POST":
         try:
@@ -37,7 +59,7 @@ def submit(request):
 
         email = request.POST['email']
         print("email====", email)
-        
+
         if executable is not None:
             fs = FileSystemStorage()
             fs.save(executable.name, executable)
@@ -76,6 +98,7 @@ def queue(request):
                     queue_info = fileB.readlines()
                     if len(queue_info)>0 and queue_info[0].startswith("jobs"):
                         print("==========", queue_info)
+                        queue_info = queue_info[2:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         break
@@ -100,6 +123,7 @@ def params(request):
                     statistics = fileB.readlines()
                     if len(statistics)>0 and statistics[0].startswith("stats"):
                         print("==========", statistics)
+                        statistics = statistics[2:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         break
@@ -125,6 +149,7 @@ def clients(request):
                     addresses = fileB.readlines()
                     if len(addresses) > 0 and addresses[0].startswith("addr"):
                         print("==========", addresses)
+                        addresses = addresses[2:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         print("DELETED")

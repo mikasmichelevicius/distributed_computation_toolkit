@@ -1,0 +1,17 @@
+{% extends 'computation/base.html' %}
+
+{% block content %}
+<h1>Details of completed {{ job_dir }}</h1>
+<h2>Submitted files:</h2>
+{% for line in submitted%}
+{{ line }}<br>
+{% endfor %}
+<br><h2>STDERR:</h2>
+{% for line in stderr %}
+{{ line }}<br>
+{% endfor %}
+<br><h2>STDOUT:</h2>
+{% for line in stdout %}
+{{ line }}<br>
+{% endfor %}
+{% endblock %}
