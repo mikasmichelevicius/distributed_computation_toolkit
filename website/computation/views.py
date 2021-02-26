@@ -76,6 +76,8 @@ def submit(request):
             submit_file.write("executable = "+executable.name+"\n")
             if dataset is not None:
                 submit_file.write("data = "+dataset.name+"\n")
+            if email is not None:
+                submit_file.write("email = "+email+"\n")
 
         with open("fileA.txt", "w") as fileA:
             fileA.write("SUBMIT submit_file.txt")
@@ -98,7 +100,7 @@ def queue(request):
                     queue_info = fileB.readlines()
                     if len(queue_info)>0 and queue_info[0].startswith("jobs"):
                         print("==========", queue_info)
-                        queue_info = queue_info[2:]
+                        queue_info = queue_info[1:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         break
@@ -123,7 +125,7 @@ def params(request):
                     statistics = fileB.readlines()
                     if len(statistics)>0 and statistics[0].startswith("stats"):
                         print("==========", statistics)
-                        statistics = statistics[2:]
+                        statistics = statistics[1:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         break
@@ -149,7 +151,7 @@ def clients(request):
                     addresses = fileB.readlines()
                     if len(addresses) > 0 and addresses[0].startswith("addr"):
                         print("==========", addresses)
-                        addresses = addresses[2:]
+                        addresses = addresses[1:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         print("DELETED")

@@ -6,12 +6,15 @@
 {% for line in submitted%}
 {{ line }}<br>
 {% endfor %}
-<br><h2>STDERR:</h2>
+<br><h2 style="text-align:left;float:left;">STDERR:</h2>
+<a href="../../{{job_dir}}/stderr.txt" style="text-align:right;float:right;" target="_blank" class="btn btn-info" download>Download</a><br><br>
 {% for line in stderr %}
 {{ line }}<br>
 {% endfor %}
-<br><h2>STDOUT:</h2>
+<br><h2 style="text-align:left;float:left;">STDOUT:</h2>
+<a href="../../{{job_dir}}/stdout.txt" style="text-align:right;float:right;" target="_blank" class="btn btn-info" download>Download</a><br><br>
 {% for line in stdout %}
-{{ line }}<br>
+{{line}}<br>
 {% endfor %}
+
 {% endblock %}

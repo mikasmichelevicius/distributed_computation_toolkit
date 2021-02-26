@@ -1,0 +1,2 @@
+executable = calc_pi.py
+email = mikas.michelevicius@gmail.com

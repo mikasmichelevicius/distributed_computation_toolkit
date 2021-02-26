@@ -184,12 +184,22 @@ def send_to_execute (filename, sock, task_no):
 
         executable = None
         data = None
+        email = None
         with open(filename) as file:
                 for line in file:
                         if 'executable' in line:
                                 executable = line.split()[2]
                         if 'data' in line:
                                 data = line.split()[2]
+                        if 'email' in line:
+                                email = line.split()[2]
+        if email is not None:
+                update_id = None
+                for id, user in control_clients.items():
+                        if user == sock:
+                                update_id = id
+                                break
+                update_email(update_id, email)
 
         shutil.move(filename, directory)
         shutil.move(executable, directory)

@@ -29,7 +29,7 @@ def get_results(task_dir,s):
         s.send(str.encode("FINISH"+task_dir))
 
 
-def send_file(sub_file):
+def send_file(sub_file, s):
         ftp = FTP('')
         ftp.connect('localhost',1026)
         ftp.login()
@@ -37,6 +37,7 @@ def send_file(sub_file):
         #ftp.retrlines('LIST')
         executable = None
         data = None
+        email = None
         filename = sub_file
         with open(filename, 'r') as file:
                 for line in file:
@@ -44,6 +45,8 @@ def send_file(sub_file):
                                 executable = line.split()[2]
                         if 'data' in line:
                                 data = line.split()[2]
+                        # if 'email' in line:
+                        #         email = line.split()[2]
 
         #filename = 'task_example.py' #replace with your file in your home folder
         ftp.storbinary('STOR '+filename, open(filename, 'rb'))
@@ -55,6 +58,9 @@ def send_file(sub_file):
         os.remove(executable)
         if data is not None:
                 os.remove(data)
+        # if email is not None:
+        #         s.send(str.encode("EMAIL"+email))
+
 
 def get_file():
         ftp = FTP('')
@@ -140,7 +146,7 @@ if __name__ == "__main__":
                                         if input_command.startswith("SUBMIT"):
                                                 is_valid=True
                                                 if is_valid:
-                                                        send_file(input_command[7:])
+                                                        send_file(input_command[7:], s)
                                                         s.send(str.encode(input_command))
 
                                         else:
