@@ -4,9 +4,17 @@
 {% if error_message %}
 <h2>{{error_message}}</h2>
 {% else %}
-<h3>Currently active clients:</h3>
+<!-- <h3>Currently active clients:</h3> -->
+{% if addresses|length == 0 %}
+<br><b>NO CLIENTS ARE CURRENTLY CONNECTED</b><br>
+{% endif %}
+
 {% for addr in addresses %}
-{{ addr|linebreaks}}
+{% if addr|slice:":4" == 'AVAI' or addr|slice:":4" == 'BUSY' %}
+<br><b>{{ addr }}</b><br>
+{%else%}
+{{ addr }}<br>
+{%endif%}
 {% endfor %}
 {% endif %}
 {% endblock %}

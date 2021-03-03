@@ -1,4 +1,5 @@
 import socket, select, os, shutil, time, shelve, sqlite3, smtplib, ssl
+from itertools import count, filterfalse
 
 
 def enqueue(directory, id):
@@ -185,6 +186,7 @@ def send_to_execute (filename, sock, task_no):
         executable = None
         data = None
         email = None
+        selected_client = None
         with open(filename) as file:
                 for line in file:
                         if 'executable' in line:
@@ -193,6 +195,8 @@ def send_to_execute (filename, sock, task_no):
                                 data = line.split()[2]
                         if 'email' in line:
                                 email = line.split()[2]
+                        if 'client' in line:
+                                selected_client = line.split()[2]
         if email is not None:
                 update_id = None
                 for id, user in control_clients.items():
@@ -209,10 +213,15 @@ def send_to_execute (filename, sock, task_no):
         submit_msg = directory + filename
 
         socket_to_execute = None
-        for socket in AVAIL_CONNECTIONS:
-                if socket != server_socket:
-                        socket_to_execute = socket
-                        break
+        if selected_client is not None:
+                for socket in AVAIL_CONNECTIONS:
+                        if client_no[socket] == int(selected_client):
+                                socket_to_execute = socket
+        else:
+                for socket in AVAIL_CONNECTIONS:
+                        if socket != server_socket:
+                                socket_to_execute = socket
+                                break
 
         if socket_to_execute is None:
                 # ENQUEUE METHOD?
@@ -251,42 +260,42 @@ def broadcast_data (sock, message):
                                 AVAIL_CONNECTIONS.remove(socket)
                                 active_addr.remove(addr)
 
-def get_statistics(sock):
-        print("get stats")
-        for socket in CONNECTIONS:
-                if socket != server_socket and socket != sock:
-                        try:
-                                socket.send(str.encode('s'))
-                        except:
-                                addr = socket.getpeername()
-                                socket.close()
-                                CONNECTIONS.remove(socket)
-                                AVAIL_CONNECTIONS.remove(socket)
-                                active_addr.remove(addr)
+# def get_statistics(sock):
+#         print("get stats")
+#         for socket in CONNECTIONS:
+#                 if socket != server_socket and socket != sock:
+#                         try:
+#                                 socket.send(str.encode('s'))
+#                         except:
+#                                 addr = socket.getpeername()
+#                                 socket.close()
+#                                 CONNECTIONS.remove(socket)
+#                                 AVAIL_CONNECTIONS.remove(socket)
+#                                 active_addr.remove(addr)
 
-def send_statistics(message,addr_curr):
-        print("send stats")
-        if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
-                try:
-                        sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
-                except:
-                        sock.close()
-                        CONNECTIONS.remove(socket)
-                        AVAIL_CONNECTIONS.remove(socket)
-                        active_addr.remove(curr_addr)
-                return
-
-        # if addr_curr not in statistics and addr_curr != control_sock.getpeername():
-        #         statistics[addr_curr] = message
-        message = "\n".join(statistics.values())
-        try:
-                control_sock.send(str.encode(message))
-        except:
-                addr = control_sock.getpeername()
-                control_sock.close()
-                CONNECTIONS.remove(control_sock)
-                AVAIL_CONNECTIONS.remove(control_sock)
-                active_addr.remove(addr)
+# def send_statistics(message,addr_curr):
+#         print("send stats")
+#         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
+#                 try:
+#                         sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
+#                 except:
+#                         sock.close()
+#                         CONNECTIONS.remove(socket)
+#                         AVAIL_CONNECTIONS.remove(socket)
+#                         active_addr.remove(curr_addr)
+#                 return
+#
+#         # if addr_curr not in statistics and addr_curr != control_sock.getpeername():
+#         #         statistics[addr_curr] = message
+#         message = "\n".join(statistics.values())
+#         try:
+#                 control_sock.send(str.encode(message))
+#         except:
+#                 addr = control_sock.getpeername()
+#                 control_sock.close()
+#                 CONNECTIONS.remove(control_sock)
+#                 AVAIL_CONNECTIONS.remove(control_sock)
+#                 active_addr.remove(addr)
 
 def clients_status (sock,curr_addr):
         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
@@ -304,14 +313,16 @@ def clients_status (sock,curr_addr):
         if len(AVAIL_CONNECTIONS) > 0:
                 for socket in AVAIL_CONNECTIONS:
                         if socket != control_sock:
-                                message += "    CLIENT WIHT ADDRESS: "+str(socket.getpeername())+"\n"
+                                message += "CLIENT #"+str(client_no[socket])+"\n"
+                                # message += "    CLIENT WIHT ADDRESS: "+str(socket.getpeername())+"\n"
         else:
                 message += "    NO AVAILABLE CLIENTS RIGHT NOW\n"
 
         message += "BUSY CLIENTS:\n"
         if len(busy_connections) > 0:
                 for socket in busy_connections:
-                        message += "    CLIENT WITH ADDRESS: "+str(socket.getpeername())+"\n"
+                        message += "CLIENT #" + str(client_no[socket])+"\n"
+                        # message += "    CLIENT WITH ADDRESS: "+str(socket.getpeername())+"\n"
         else:
                 message += "    NO WORKING CLIENTS RIGHT NOW"
         try:
@@ -413,6 +424,8 @@ if __name__ == "__main__":
         control_clients = {}
         task_user_map = {}
         user_exec_time = {}
+        client_no = {}
+
 
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -484,10 +497,10 @@ if __name__ == "__main__":
                                                 finish_task(data.decode()[6:])
 
 
-                                        elif data.decode().startswith('ret_s'):
-                                                print("adding to statistics")
-                                                statistics[sock.getpeername()] = data.decode()[5:]
-                                                send_statistics(data.decode()[5:],sock.getpeername())
+                                        # elif data.decode().startswith('ret_s'):
+                                        #         print("adding to statistics")
+                                        #         statistics[sock.getpeername()] = data.decode()[5:]
+                                        #         send_statistics(data.decode()[5:],sock.getpeername())
 
                                         elif data.decode().startswith('RETRIEVE'):
                                                 get_waiting_results()
@@ -521,6 +534,13 @@ if __name__ == "__main__":
                                                         sock.send(str.encode("RETRIEVE"))
 
                                         elif data.decode().startswith('CLIENT'):
+                                                print("CLIENT CONNECTED, ITS STATS:\n")
+                                                if len(client_no) == 0:
+                                                        client_no[sock] = 1
+                                                else:
+                                                        client_no[sock] = next(filterfalse(set(client_no.values()).__contains__, count(1)))
+                                                statistics[sock] = "Client #"+str(client_no[sock])+" statistics:\n"+data.decode()[6:]
+                                                print(statistics[sock])
                                                 execute_queued()
 
                                         elif data.decode().startswith('EXISTING_CONTROL'):
@@ -532,31 +552,16 @@ if __name__ == "__main__":
                                                         sock.send(str.encode("RETRIEVE"))
 
                                         elif data.decode() == 's':
-                                                print("getting s command")
-                                                print(len(statistics), len(active_addr))
-                                                if len(statistics) == len(active_addr)-1:
-                                                        if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
-                                                                try:
-                                                                        print("try to send s")
-                                                                        sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
-                                                                except:
-                                                                        print("unsuccessful")
-                                                                        sock.close()
-                                                                        CONNECTIONS.remove(socket)
-                                                                        AVAIL_CONNECTIONS.remove(socket)
-                                                                        active_addr.remove(curr_addr)
-                                                        else:
-                                                                control_sock = sock
-                                                                get_statistics(sock)
-                                                        # message = ""
-                                                        # for x in statistics:
-                                                        #         message += statistics[x]
-                                                        # print('Retrieving stored info')
-                                                        # print("==============================",sock.getpeername())
-                                                        # send_statistics(message,sock.getpeername())
-                                                else:
-                                                        control_sock = sock
-                                                        get_statistics(sock)
+                                                return_string = '\n'.join(statistics.values())
+                                                try:
+                                                        print("try to send s")
+                                                        sock.send(str.encode("s \n"+return_string))
+                                                except:
+                                                        print("unsuccessful")
+                                                        sock.close()
+                                                        CONNECTIONS.remove(socket)
+                                                        AVAIL_CONNECTIONS.remove(socket)
+                                                        active_addr.remove(curr_addr)
 
 
                                         else:
@@ -571,6 +576,8 @@ if __name__ == "__main__":
                                         CONNECTIONS.remove(sock)
                                         if sock in AVAIL_CONNECTIONS:
                                                 AVAIL_CONNECTIONS.remove(sock)
+                                        statistics.pop(sock, None)
+                                        client_no.pop(sock,None)
                                         print(active_addr)
                                         active_addr.remove(addr)
                                         continue

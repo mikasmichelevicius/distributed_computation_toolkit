@@ -1,2 +1,0 @@
-executable = executable.py
-data = data.csv

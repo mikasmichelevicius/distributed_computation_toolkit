@@ -4,9 +4,13 @@
 {% if error_message %}
 <h2>{{error_message}}</h2>
 {% else %}
-<h3>Queue info:</h3>
+<!-- <h3>Queue info:</h3> -->
 {% for line in queue_info %}
-{{ line|linebreaks}}
+{% if line|slice:":4" == 'ACTI' or line|slice:":4" == 'QUEU'%}
+<br><b>{{ line }}</b><br>
+{%else%}
+{{ line }}<br>
+{%endif%}
 {% endfor %}
 {% endif %}
 {% endblock %}

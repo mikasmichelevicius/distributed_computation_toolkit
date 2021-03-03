@@ -10,6 +10,13 @@
   <input type="file" name="dataset"><br><br>
   <label>Enter email to be notified when the job is completed:</label><br>
   <input type="text" name="email"><br><br>
+  <label>Select available client (see parameters in Clients Parameters section):</label><br>
+  <select name="client">
+    <option value="default">Any</option>
+    {% for client in active %}
+    <option value="{{client}}">{{ client }}</option>
+    {% endfor %}
+  </select><br><br>
   <button type="submit">Start job</button>
 </form>
 {% endblock %}

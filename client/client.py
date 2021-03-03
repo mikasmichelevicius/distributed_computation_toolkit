@@ -1,5 +1,6 @@
 import socket, select, string, sys, os, shutil, subprocess, time, io
 from ftplib import FTP
+import tensorflow as tf
 
 
 def prompt() :
@@ -107,7 +108,7 @@ def execute_task(submit_msg,s,digits):
         resp_mesg = "DONE"+task_dir+submit_file
         print(s.send(str.encode(resp_mesg)))
 
-def return_stats(s):
+def return_stats():
         print("Collecting statistics")
         with open('/proc/meminfo') as file:
                 for line in file:
@@ -130,18 +131,32 @@ def return_stats(s):
                                 break
 
         work_dir = os.getcwd()
-        stat = shutil.disk_usage(work_dir)
+        # stat = shutil.disk_usage(work_dir)
 
-        stats_details = "ret_ss\n Client "+str(s.getsockname())+" statistics:\nMemory in MB:\nTotal:"+str(int(int(total)/1000))+", Free:"+str(int(int(free)/1000))+", Available:"+str(int(int(available)/1000))+"\n"
-        stats_details += "CPU info:\nCore(s):"+cores+", Thread(s):"+str(int(int(siblings)/int(cores)))+", Core(s) with hyper-threading:"+siblings
-        stats_details += "\nDisk usage in KB:\n"+str(stat)+"\n"
-        s.send(str.encode(stats_details))
+        stat = ""
+        gpus = tf.config.list_physical_devices('GPU')
+        if len(gpus)>0:
+                stat += "CUDA compatible GPU: Yes"
+        else:
+                print(len(gpus))
+                stat += "CUDA compatible GPU: No"
+
+        # stats_details = "Memory in GB:\nTotal:"+str(int(int(total)/(1024*1024)))+", Free:"+str(int(int(free)/(1024*1024)))+", Available:"+str(int(int(available)/(1024*1024)))+"\n"
+        # stats_details += "CPU info:\nCore(s):"+cores+", Thread(s):"+str(int(int(siblings)/int(cores)))+", Core(s) with hyper-threading:"+siblings
+        # stats_details += "\nDisk usage in KB:\n"+str(stat)+"\n"
+
+        stats_details = "RAM available:"+str(int(int(available)/(1024*1024)))+"\n"
+        stats_details += "Number of CPU cores:"+cores+", Thread(s):"+str(int(int(siblings)/int(cores)))
+        stats_details += "\n"+str(stat)+"\n"
+        # s.send(str.encode(stats_details))
+        return stats_details
 
 #main function
 if __name__ == "__main__":
+        os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 
         if(len(sys.argv) < 3) :
-                print('Usage : python telnet.py hostname port')
+                print('Usage : python client.py hostname port')
                 sys.exit()
 
         host = sys.argv[1]
@@ -157,7 +172,8 @@ if __name__ == "__main__":
                 print('Unable to connect')
                 sys.exit()
 
-        s.send(str.encode("CLIENT"))
+        stats = return_stats()
+        s.send(str.encode("CLIENT"+stats))
         print('Connected to remote host. Start sending messages')
         prompt()
 

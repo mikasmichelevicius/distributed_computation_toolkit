@@ -4,9 +4,16 @@
 {% if error_message %}
 <h2>{{error_message}}</h2>
 {% else %}
-<h3>Clients' statistics:</h3>
+<!-- <h3>Clients' statistics:</h3> -->
+{% if statistics|length == 0 %}
+<br><b>NO CLIENTS ARE CURRENTLY CONNECTED</b><br>
+{% endif %}
 {% for line in statistics %}
-{{ line|linebreaks }}
+{% if line|slice:":6" == 'Client' %}
+<br><b>{{ line }}</b><br>
+{% else %}
+{{ line }}<br>
+{% endif %}
 {% endfor %}
 {% endif %}
 {% endblock %}

@@ -26,12 +26,17 @@ def trigger_sock():
 
 def details(request, job):
     print("DETAILS ENTERED")
+    submitted = []
     with open(job+"/stderr.txt", "r+") as errfile:
         stderr = errfile.readlines()
     with open(job+"/stdout.txt", "r+") as outfile:
         stdout = outfile.readlines()
     with open(job+"/submit_file.txt", "r+") as subfile:
-        submitted = subfile.readlines()
+        lines = subfile.readlines()
+    submitted.append(lines[0])
+    if lines[1].startswith("data"):
+        submitted.append(lines[1])
+
     for i in range(len(submitted)):
         submitted[i] = submitted[i].split()[2]
 
@@ -47,6 +52,7 @@ def completed(request):
     return render(request, 'computation/completed.html', {'jobs':job_dirs})
 
 def submit(request):
+    addresses = []
     if request.method == "POST":
         try:
             executable = request.FILES['executable']
@@ -59,6 +65,8 @@ def submit(request):
 
         email = request.POST['email']
         print("email====", email)
+
+        selected_client = request.POST['client']
 
         if executable is not None:
             fs = FileSystemStorage()
@@ -78,12 +86,46 @@ def submit(request):
                 submit_file.write("data = "+dataset.name+"\n")
             if email is not None:
                 submit_file.write("email = "+email+"\n")
+            if selected_client != "Any":
+                submit_file.write("client = "+selected_client[8:])
 
         with open("fileA.txt", "w") as fileA:
             fileA.write("SUBMIT submit_file.txt")
             fileA.flush()
         is_running = trigger_sock()
-    context = {}
+    else:
+        addresses = ""
+        with open("fileA.txt", "w") as fileA:
+            fileA.write("a")
+        is_running = trigger_sock()
+        if is_running == 0:
+            while True:
+                with open("fileB.txt", "r+") as fileB:
+                    if fileB.read(1):
+                        fileB.seek(0,0)
+                        addresses = fileB.readlines()
+                        if len(addresses) > 0 and addresses[0].startswith("addr"):
+                            print("==========", addresses)
+                            addresses = addresses[1:]
+                            if addresses[0].startswith("___"):
+                                addresses = []
+                            fileB.seek(0,0)
+                            fileB.truncate(0)
+                            print("DELETED")
+                            break
+                        else:
+                            error_message = "Please refresh the page for the information."
+                            return render(request, 'computation/clients.html', {'error_message':error_message})
+        else:
+            return render(request, 'computation/clients.html', {'error_message':"Server is currently closed"})
+    active = []
+    if len(addresses) != 0:
+        for client in addresses:
+            if client.startswith("CLIENT"):
+                active.append(client)
+            if client.startswith("BUSY"):
+                break;
+    context = {'active':active}
     return render(request, 'computation/submit.html', context)
 
 def queue(request):
@@ -100,7 +142,7 @@ def queue(request):
                     queue_info = fileB.readlines()
                     if len(queue_info)>0 and queue_info[0].startswith("jobs"):
                         print("==========", queue_info)
-                        queue_info = queue_info[1:]
+                        queue_info = queue_info[2:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         break
@@ -152,6 +194,8 @@ def clients(request):
                     if len(addresses) > 0 and addresses[0].startswith("addr"):
                         print("==========", addresses)
                         addresses = addresses[1:]
+                        if addresses[0].startswith("___"):
+                            addresses = []
                         fileB.seek(0,0)
                         fileB.truncate(0)
                         print("DELETED")
