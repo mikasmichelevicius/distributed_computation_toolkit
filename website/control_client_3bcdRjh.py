@@ -1,4 +1,4 @@
-import socket, select, string, sys, py_compile, os, shelve, sqlite3, subprocess
+import socket, select, string, sys, py_compile, os, shelve, sqlite3
 from ftplib import FTP
 
 def does_compile(filename):
@@ -29,7 +29,7 @@ def get_results(task_dir,s):
         s.send(str.encode("FINISH"+task_dir))
 
 
-def send_file(sub_file, s):
+def send_file(sub_file):
         ftp = FTP('')
         ftp.connect('localhost',1026)
         ftp.login()
@@ -37,7 +37,6 @@ def send_file(sub_file, s):
         #ftp.retrlines('LIST')
         executable = None
         data = None
-        email = None
         filename = sub_file
         with open(filename, 'r') as file:
                 for line in file:
@@ -45,8 +44,6 @@ def send_file(sub_file, s):
                                 executable = line.split()[2]
                         if 'data' in line:
                                 data = line.split()[2]
-                        # if 'email' in line:
-                        #         email = line.split()[2]
 
         #filename = 'task_example.py' #replace with your file in your home folder
         ftp.storbinary('STOR '+filename, open(filename, 'rb'))
@@ -54,13 +51,6 @@ def send_file(sub_file, s):
         if data is not None:
                 ftp.storbinary('STOR '+data, open(data, 'rb'))
         ftp.quit()
-        os.remove(sub_file)
-        os.remove(executable)
-        if data is not None:
-                os.remove(data)
-        # if email is not None:
-        #         s.send(str.encode("EMAIL"+email))
-
 
 def get_file():
         ftp = FTP('')
@@ -101,7 +91,7 @@ if __name__ == "__main__":
         port = int(sys.argv[2])
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # s.settimeout(2)
+        s.settimeout(2)
 
         # connect to remote host
         try :
@@ -132,24 +122,9 @@ if __name__ == "__main__":
                 socket_list = [sys.stdin, s]
 
                 # Get the list sockets which are readable
-                read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [], 1)
+                read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
 
                 for x in range(0,len(read_sockets)):
-
-                        with open("fileA.txt", "r+") as file:
-                                if file.read(1):
-                                        file.seek(0,0)
-                                        input_command = file.read()
-                                        file.truncate(0)
-                                        if input_command.startswith("SUBMIT"):
-                                                is_valid=True
-                                                if is_valid:
-                                                        send_file(input_command[7:], s)
-                                                        s.send(str.encode(input_command))
-
-                                        else:
-                                                s.send(str.encode(input_command))
-
                         #incoming message from remote server
                         if read_sockets[x] == s:
                                 data = read_sockets[x].recv(4096)
@@ -157,31 +132,16 @@ if __name__ == "__main__":
                                         print('\nDisconnected from chat server')
                                         sys.exit()
                                 elif (data.decode().startswith('a')):
-                                        with open("fileB.txt", "w") as fileB:
-                                                fileB.write("addr\n"+data.decode()[3:])
-                                        # sys.stdout.write(data.decode()[1:])
+                                        sys.stdout.write(data.decode()[1:])
                                         # prompt()
                                 elif data.decode().startswith('DONE'):
                                         get_results(data.decode()[4:],s)
-
-                                elif data.decode().startswith("error"):
-                                        with open("fileB.txt", "w") as fileB:
-                                                fileB.write(data.decode())
-                                                print("error written to file")
-
-                                elif data.decode().startswith('s'):
-                                        with open("fileB.txt", "w") as fileB:
-                                                fileB.write("stats\n"+data.decode()[3:])
-                                                fileB.flush()
-                                        # sys.stdout.write(data.decode()[1:])
 
                                 elif data.decode().startswith('RETURN'):
                                         get_results(data.decode()[6:],s)
 
                                 elif data.decode().startswith('JOB-status'):
-                                        with open("fileB.txt", "w") as fileB:
-                                                fileB.write("jobs\n"+data.decode()[10:])
-                                        # sys.stdout.write(data.decode()[10:])
+                                        sys.stdout.write(data.decode()[10:])
                                 elif data.decode().startswith('RETRIEVE'):
                                         print("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED FROM SERVER\n")
                                         s.send(str.encode("RETRIEVE"))
@@ -199,8 +159,8 @@ if __name__ == "__main__":
                                         print("\n       ",data.decode()[13+digits:],"SENT FOR EXECUTION AS",data.decode()[8:13+digits])
                                 else :
                                         #print data
-                                        print('.')
-                                        # sys.stdout.write(data.decode())
+                                        print("AR CIA YRA STATS?")
+                                        sys.stdout.write(data.decode())
                                         # prompt()
 
                         #user entered a message

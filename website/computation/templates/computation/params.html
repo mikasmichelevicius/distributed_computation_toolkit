@@ -1,4 +1,12 @@
 {% extends 'computation/base.html' %}
+{% load static %}
+
+<!-- <style>
+  * {
+  font-family: sans-serif; /* Change your font family */
+}
+</style> -->
+<link rel="stylesheet" type="text/css" href="{% static 'computation/main.css' %}">
 
 {% block content %}
 {% if error_message %}
@@ -6,14 +14,51 @@
 {% else %}
 <!-- <h3>Clients' statistics:</h3> -->
 {% if statistics|length == 0 %}
-<br><b>NO CLIENTS ARE CURRENTLY CONNECTED</b><br>
+<table class="content-table">
+  <thead>
+    <tr>
+      <th>NO CLIENTS ARE CURRENTLY CONNECTED</th>
+    </tr>
+  </thead>
+</table>
+{% else %}
+<table class="content-table">
+  <thead>
+    <tr>
+      <th>Client</th>
+      <th>RAM available</th>
+      <th>CPU cores</th>
+      <th>Threads</th>
+      <th>CUDA compatible GPU</th>
+    </tr>
+  </thead>
+  <tbody>
+
+      {% for line in statistics %}
+      {% if line|slice:":6" == 'Client' %}
+      <tr>
+        <td>{{ line | slice:"7:9" }}</td>
+      {% elif line|slice:":3" == 'RAM'%}
+        <td>{{ line | slice:"14:"}}</td>
+      {% elif line|slice:":3" == 'Num' %}
+        <td>{{ line | slice:"20:21"}}</td>
+        <td>{{ line | slice:"33:"}}</td>
+      {% elif line|slice:":3" == 'CUD' %}
+        <td>{{ line | slice:"21:"}}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+
+  </tbody>
+</table>
 {% endif %}
-{% for line in statistics %}
+
+<!-- {% for line in statistics %}
 {% if line|slice:":6" == 'Client' %}
 <br><b>{{ line }}</b><br>
 {% else %}
 {{ line }}<br>
 {% endif %}
-{% endfor %}
+{% endfor %} -->
 {% endif %}
 {% endblock %}

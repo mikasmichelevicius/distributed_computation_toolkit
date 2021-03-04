@@ -12,7 +12,7 @@
   <input type="text" name="email"><br><br>
   <label>Select available client (see parameters in Clients Parameters section):</label><br>
   <select name="client">
-    <option value="default">Any</option>
+    <option value="default">default</option>
     {% for client in active %}
     <option value="{{client}}">{{ client }}</option>
     {% endfor %}

@@ -16,6 +16,7 @@ urlpatterns = [
         path('details/<str:job>/', views.details, name='details'),
         path('login_user/', views.login_user, name = 'login_user'),
         path('sign_up/', views.sign_up, name = 'sign_up'),
+        path('logout_user/', views.logout_user, name = 'logout_user'),
         ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

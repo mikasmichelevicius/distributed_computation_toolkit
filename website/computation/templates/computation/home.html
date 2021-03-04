@@ -1,8 +1,10 @@
 {% extends 'computation/base.html' %}
 
-<!-- {% block content %}
-<h1> Hello {{ username }}! You are logged in.</h1>
 
-<h2>{{ message }}</h2>
-
-{% endblock %} -->
+{% block content %}
+{% if user.is_authenticated %}
+<h1>Hello {{username}}, you are logged in.</h1>
+{% else %}
+<h1>Hello, please login or register.</h1>
+{% endif %}
+{% endblock %}

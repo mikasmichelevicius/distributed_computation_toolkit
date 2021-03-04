@@ -6,15 +6,41 @@
 {% else %}
 <!-- <h3>Currently active clients:</h3> -->
 {% if addresses|length == 0 %}
-<br><b>NO CLIENTS ARE CURRENTLY CONNECTED</b><br>
+<table class="content-table">
+  <thead>
+    <tr>
+      <th>NO CLIENTS ARE CURRENTLY CONNECTED</th>
+    </tr>
+  </thead>
+</table>
 {% endif %}
 
-{% for addr in addresses %}
+<table class="content-table">
+  {% for addr in addresses %}
+    {% if addr|slice:":4" == 'AVAI' or addr|slice:":4" == 'BUSY' %}
+
+    <thead>
+      <tr>
+        <th>{{addr}}</th>
+      </tr>
+    </thead>
+    {% else %}
+    <tbody>
+      <tr>
+        <td>{{addr}}</td>
+      </tr>
+    </tbody>
+    {% endif %}
+  {% endfor %}
+
+</table>
+
+<!-- {% for addr in addresses %}
 {% if addr|slice:":4" == 'AVAI' or addr|slice:":4" == 'BUSY' %}
 <br><b>{{ addr }}</b><br>
 {%else%}
 {{ addr }}<br>
 {%endif%}
-{% endfor %}
+{% endfor %} -->
 {% endif %}
 {% endblock %}

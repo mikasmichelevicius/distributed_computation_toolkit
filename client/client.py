@@ -94,7 +94,7 @@ def execute_task(submit_msg,s,digits):
                 status = "Successful"
         else:
                 status = "Unsuccessful"
-        err_file.write("Program Execution Was " + status+ "!\n\n")
+        err_file.write("Program Execution Was " + status+ "!\n")
         if err:
                 err_file.write(err.decode())
         err_file.close()

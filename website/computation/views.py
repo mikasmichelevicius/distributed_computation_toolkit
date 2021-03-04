@@ -25,7 +25,6 @@ def trigger_sock():
     return ret
 
 def details(request, job):
-    print("DETAILS ENTERED")
     submitted = []
     with open(job+"/stderr.txt", "r+") as errfile:
         stderr = errfile.readlines()
@@ -46,8 +45,6 @@ def details(request, job):
 def completed(request):
     all_dirs = os.listdir()
     job_dirs = [x for x in all_dirs if x.startswith("TASK")]
-    print(all_dirs)
-    print(job_dirs)
     job_dirs.sort(reverse=True)
     return render(request, 'computation/completed.html', {'jobs':job_dirs})
 
@@ -64,7 +61,6 @@ def submit(request):
             dataset = None
 
         email = request.POST['email']
-        print("email====", email)
 
         selected_client = request.POST['client']
 
@@ -86,8 +82,9 @@ def submit(request):
                 submit_file.write("data = "+dataset.name+"\n")
             if email is not None:
                 submit_file.write("email = "+email+"\n")
-            if selected_client != "Any":
+            if selected_client != "default":
                 submit_file.write("client = "+selected_client[8:])
+
 
         with open("fileA.txt", "w") as fileA:
             fileA.write("SUBMIT submit_file.txt")
@@ -105,13 +102,11 @@ def submit(request):
                         fileB.seek(0,0)
                         addresses = fileB.readlines()
                         if len(addresses) > 0 and addresses[0].startswith("addr"):
-                            print("==========", addresses)
                             addresses = addresses[1:]
                             if addresses[0].startswith("___"):
                                 addresses = []
                             fileB.seek(0,0)
                             fileB.truncate(0)
-                            print("DELETED")
                             break
                         else:
                             error_message = "Please refresh the page for the information."
@@ -141,7 +136,6 @@ def queue(request):
                     fileB.seek(0,0)
                     queue_info = fileB.readlines()
                     if len(queue_info)>0 and queue_info[0].startswith("jobs"):
-                        print("==========", queue_info)
                         queue_info = queue_info[2:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
@@ -166,7 +160,6 @@ def params(request):
                     fileB.seek(0,0)
                     statistics = fileB.readlines()
                     if len(statistics)>0 and statistics[0].startswith("stats"):
-                        print("==========", statistics)
                         statistics = statistics[1:]
                         fileB.seek(0,0)
                         fileB.truncate(0)
@@ -192,13 +185,11 @@ def clients(request):
                     fileB.seek(0,0)
                     addresses = fileB.readlines()
                     if len(addresses) > 0 and addresses[0].startswith("addr"):
-                        print("==========", addresses)
                         addresses = addresses[1:]
                         if addresses[0].startswith("___"):
                             addresses = []
                         fileB.seek(0,0)
                         fileB.truncate(0)
-                        print("DELETED")
                         break
                     else:
                         error_message = "Please refresh the page for the information."
@@ -300,6 +291,10 @@ def login_user(request):
         else:
             return render(request, 'computation/login_user.html', {'message':"Login details are incorrect."})
     return render(request, 'computation/login_user.html', {})
+
+def logout_user(request):
+    logout(request)
+    return render(request, 'computation/home.html', {})
 
 def sign_up(request):
     context = {}

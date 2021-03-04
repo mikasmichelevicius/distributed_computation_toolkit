@@ -75,9 +75,9 @@ def job_status(sock):
                 for key in running_tasks:
                         start_time = execution_time[running_tasks[key]]
                         run_time = "{:.2f}".format(time.time() - start_time)
-                        message += "    "+str(running_tasks[key])+" IS RUNNING ON HOST " + str(key) + ".\n        EXECUTION TIME: "+str(run_time)+" SECONDS.\n"
+                        message += "    "+str(running_tasks[key])+" IS RUNNING ON CLIENT #" + str(addr_to_number[key]) + ".        EXECUTION TIME: "+str(run_time)+" SECONDS.\n"
 
-        message += "\nQUEUE:\n"
+        message += "QUEUE:\n"
         if len(queued_tasks) == 0:
                 message += "    NO TASKS ARE QUEUED RIGHT NOW.\n"
         else:
@@ -110,6 +110,7 @@ def send_results(task_dir, submit_file, execution_sock):
         update_exec_times(task_dir, exec_time)
 
         if user_return in CONNECTIONS:
+                send_email(user_id, task_dir, exec_time)
                 running_tasks.pop(execution_sock.getpeername())
                 busy_connections.remove(execution_sock)
                 AVAIL_CONNECTIONS.append(execution_sock)
@@ -197,6 +198,8 @@ def send_to_execute (filename, sock, task_no):
                                 email = line.split()[2]
                         if 'client' in line:
                                 selected_client = line.split()[2]
+                                if selected_client == "default":
+                                        selected_client = None
         if email is not None:
                 update_id = None
                 for id, user in control_clients.items():
@@ -425,6 +428,7 @@ if __name__ == "__main__":
         task_user_map = {}
         user_exec_time = {}
         client_no = {}
+        addr_to_number = {}
 
 
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -539,7 +543,8 @@ if __name__ == "__main__":
                                                         client_no[sock] = 1
                                                 else:
                                                         client_no[sock] = next(filterfalse(set(client_no.values()).__contains__, count(1)))
-                                                statistics[sock] = "Client #"+str(client_no[sock])+" statistics:\n"+data.decode()[6:]
+                                                statistics[sock] = "Client #"+str(client_no[sock])+":\n"+data.decode()[6:]
+                                                addr_to_number[sock.getpeername()] = client_no[sock]
                                                 print(statistics[sock])
                                                 execute_queued()
 

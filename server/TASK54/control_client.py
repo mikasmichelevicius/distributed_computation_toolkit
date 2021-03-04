@@ -137,9 +137,11 @@ if __name__ == "__main__":
                 for x in range(0,len(read_sockets)):
 
                         with open("fileA.txt", "r+") as file:
+                                print("FILE OPENED")
                                 if file.read(1):
                                         file.seek(0,0)
                                         input_command = file.read()
+                                        print("command",input_command,"received")
                                         file.truncate(0)
                                         if input_command.startswith("SUBMIT"):
                                                 is_valid=True
@@ -159,6 +161,7 @@ if __name__ == "__main__":
                                 elif (data.decode().startswith('a')):
                                         with open("fileB.txt", "w") as fileB:
                                                 fileB.write("addr\n"+data.decode()[3:])
+                                                print("command a written to file")
                                         # sys.stdout.write(data.decode()[1:])
                                         # prompt()
                                 elif data.decode().startswith('DONE'):
@@ -170,9 +173,11 @@ if __name__ == "__main__":
                                                 print("error written to file")
 
                                 elif data.decode().startswith('s'):
+                                        print("received s results")
                                         with open("fileB.txt", "w") as fileB:
                                                 fileB.write("stats\n"+data.decode()[3:])
                                                 fileB.flush()
+                                                print("command s written to file")
                                         # sys.stdout.write(data.decode()[1:])
 
                                 elif data.decode().startswith('RETURN'):
@@ -181,7 +186,8 @@ if __name__ == "__main__":
                                 elif data.decode().startswith('JOB-status'):
                                         with open("fileB.txt", "w") as fileB:
                                                 fileB.write("jobs\n"+data.decode()[10:])
-                                        # sys.stdout.write(data.decode()[10:])
+                                                print("Job status written to file")
+                                        sys.stdout.write(data.decode()[10:])
                                 elif data.decode().startswith('RETRIEVE'):
                                         print("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED FROM SERVER\n")
                                         s.send(str.encode("RETRIEVE"))
@@ -199,7 +205,7 @@ if __name__ == "__main__":
                                         print("\n       ",data.decode()[13+digits:],"SENT FOR EXECUTION AS",data.decode()[8:13+digits])
                                 else :
                                         #print data
-                                        print('.')
+                                        print("something\n")
                                         # sys.stdout.write(data.decode())
                                         # prompt()
 

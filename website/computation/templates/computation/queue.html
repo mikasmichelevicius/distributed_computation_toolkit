@@ -5,12 +5,30 @@
 <h2>{{error_message}}</h2>
 {% else %}
 <!-- <h3>Queue info:</h3> -->
-{% for line in queue_info %}
+<table class="content-table">
+  {% for line in queue_info %}
+  {% if line|slice:":4" == 'ACTI' or line|slice:":4" == 'QUEU'%}
+  <thead>
+    <tr>
+      <th>{{line}}</th>
+    </tr>
+  </thead>
+  {%else%}
+  <tbody>
+    <tr>
+      <td>{{line}}</td>
+    </tr>
+  </tbody>
+  {% endif %}
+  {% endfor %}
+</table>
+
+<!-- {% for line in queue_info %}
 {% if line|slice:":4" == 'ACTI' or line|slice:":4" == 'QUEU'%}
 <br><b>{{ line }}</b><br>
 {%else%}
 {{ line }}<br>
 {%endif%}
-{% endfor %}
+{% endfor %} -->
 {% endif %}
 {% endblock %}

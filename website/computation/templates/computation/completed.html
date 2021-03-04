@@ -1,8 +1,26 @@
 {% extends 'computation/base.html' %}
 
 {% block content %}
-<h1>Completed Jobs:</h1>
+
+<table class="content-table">
+  <thead>
+    <tr>
+      <th>COMPLETED JOBS:</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      {% for j in jobs %}
+      <tr>
+        <td><a href="{% url 'computation:details' job=j %}">{{ j }}</a></td>
+      </tr>
+      {% endfor %}
+    </tr>
+  </tbody>
+</table>
+
+<!-- <h1>Completed Jobs:</h1>
 {% for j in jobs %}
 <li><a href="{% url 'computation:details' job=j %}">{{ j }}</a></li>
-{% endfor %}
+{% endfor %} -->
 {% endblock %}

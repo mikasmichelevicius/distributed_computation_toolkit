@@ -1,5 +1,6 @@
 body {
-  background: #fafafa;
+  /* background: #fafafa; */
+  background: #eeeeee;
   color: #333333;
   margin-top: 6rem;
 }
@@ -13,11 +14,13 @@ ul {
 }
 
 .bg-steel {
-  background-color: #99004d;
+  background-color: #778899;
 }
 
 .site-header .navbar-nav .nav-link {
   color: #cbd5db;
+  text-align: center;
+  /* padding-top: 10px; */
 }
 
 .site-header .navbar-nav .nav-link:hover {
@@ -126,4 +129,46 @@ a.article-title:hover {
 .inputaslabel {
       outline: none;
       border: 0px none;
+}
+
+.content-table {
+border-collapse: collapse;
+margin: 25px 0;
+font-size: 0.9em;
+min-width: 400px;
+width: 100%;
+border-radius: 5px 5px 0 0;
+overflow: hidden;
+table-layout:fixed;
+word-wrap:break-word;
+box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.content-table thead tr {
+background-color: #778899;
+color: #ffffff;
+text-align: left;
+font-weight: bold;
+}
+
+.content-table th,
+.content-table td {
+padding: 12px 15px;
+}
+
+.content-table tbody tr {
+border-bottom: 1px solid #dddddd;
+}
+
+.content-table tbody tr:nth-of-type(even) {
+background-color: #f3f3f3;
+}
+
+.content-table tbody tr:last-of-type {
+border-bottom: 2px solid #778899;
+}
+
+.content-table tbody tr.active-row {
+font-weight: bold;
+color: #778899;
 }

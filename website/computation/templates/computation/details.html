@@ -2,7 +2,49 @@
 
 {% block content %}
 <h1>Details of completed {{ job_dir }}</h1>
-<h2>Submitted files:</h2>
+
+<table class="content-table">
+  <thead>
+    <tr>
+      <th>Submitted files:</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in submitted%}
+    <tr>
+      <td>{{line}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+
+  <thead>
+    <tr>
+      <th>STDERR: <a href="../../{{job_dir}}/stderr.txt" style="text-align:right;float:right;" target="_blank" class="btn btn-info" download>Download</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in stderr %}
+    <tr>
+      <td>{{line}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+
+  <thead>
+    <tr>
+      <th>STDOUT: <a href="../../{{job_dir}}/stdout.txt" style="text-align:right;float:right;" target="_blank" class="btn btn-info" download>Download</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in stdout %}
+    <tr>
+      <td style="overflow: hidden; width: 280px; text-align: left; valign: top; whitespace: nowrap;">{{line}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- <h2>Submitted files:</h2>
 {% for line in submitted%}
 {{ line }}<br>
 {% endfor %}
@@ -15,6 +57,6 @@
 <a href="../../{{job_dir}}/stdout.txt" style="text-align:right;float:right;" target="_blank" class="btn btn-info" download>Download</a><br><br>
 {% for line in stdout %}
 {{line}}<br>
-{% endfor %}
+{% endfor %} -->
 
 {% endblock %}
