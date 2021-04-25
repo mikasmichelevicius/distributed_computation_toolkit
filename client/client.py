@@ -3,10 +3,6 @@ from ftplib import FTP
 import tensorflow as tf
 
 
-def prompt() :
-        sys.stdout.write('\n<Client> ')
-        sys.stdout.flush()
-
 def results_to_server(task_dir, filename, data):
         result_files = os.listdir(task_dir)
         result_files.remove(filename)
@@ -18,9 +14,7 @@ def results_to_server(task_dir, filename, data):
         ftp.connect('localhost',1026)
         ftp.login()
         ftp.cwd(task_dir) #replace with your directory
-        #ftp.retrlines('LIST')
         for x in range(len(result_files)):
-                # filename = task_dir+"/"+result_files[x]
                 filename = result_files[x]
                 ftp.storbinary('STOR '+filename, open(task_dir+"/"+filename, 'rb'))
         ftp.quit()
@@ -49,10 +43,8 @@ def get_file(filename,task_dir):
                 for line in file:
                         if 'executable' in line:
                                 executable = line.split()[2]
-                                print(executable)
                         if 'data' in line:
                                 data = line.split()[2]
-                                print(data)
         os.chdir(current)
         localfile = open(task_dir+"/"+executable, 'wb')
         ftp.retrbinary('RETR ' + executable, localfile.write, 1024)
@@ -68,7 +60,6 @@ def get_file(filename,task_dir):
 def execute_task(submit_msg,s,digits):
         task_dir = submit_msg[:4+digits]
         task_no = int(submit_msg[4:4+digits])
-        print(task_no,'====================')
         submit_file = submit_msg[4+digits:]
         get_file(submit_file, task_dir)
 
@@ -109,7 +100,6 @@ def execute_task(submit_msg,s,digits):
         print(s.send(str.encode(resp_mesg)))
 
 def return_stats():
-        print("Collecting statistics")
         with open('/proc/meminfo') as file:
                 for line in file:
                         if 'MemTotal' in line:
@@ -123,10 +113,8 @@ def return_stats():
         with open('/proc/cpuinfo') as file:
                 for line in file:
                         if 'siblings' in line:
-                                #print(line)
                                 siblings = line.split()[2]
                         if 'cpu cores' in line:
-                                #print(line)
                                 cores = line.split()[3]
                                 break
 
@@ -138,7 +126,6 @@ def return_stats():
         if len(gpus)>0:
                 stat += "CUDA compatible GPU: Yes"
         else:
-                print(len(gpus))
                 stat += "CUDA compatible GPU: No"
 
         # stats_details = "Memory in GB:\nTotal:"+str(int(int(total)/(1024*1024)))+", Free:"+str(int(int(free)/(1024*1024)))+", Available:"+str(int(int(available)/(1024*1024)))+"\n"
@@ -156,7 +143,7 @@ if __name__ == "__main__":
         os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 
         if(len(sys.argv) < 3) :
-                print('Usage : python client.py hostname port')
+                print('Usage : python client.py localhost port')
                 sys.exit()
 
         host = sys.argv[1]
@@ -174,11 +161,11 @@ if __name__ == "__main__":
 
         stats = return_stats()
         s.send(str.encode("CLIENT"+stats))
-        print('Connected to remote host. Start sending messages')
-        prompt()
+        print('Connected to the server')
 
         while 1:
-                socket_list = [sys.stdin, s]
+                # socket_list = [sys.stdin, s]
+                socket_list = [s]
 
                 # Get the list sockets which are readable
                 read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
@@ -188,7 +175,6 @@ if __name__ == "__main__":
                         if read_sockets[x] == s:
                                 data = read_sockets[x].recv(4096)
                                 if not data :
-                                        #print('won\'t disconnect')
                                         print('\nDisconnected from chat server')
                                         sys.exit()
 
@@ -201,19 +187,13 @@ if __name__ == "__main__":
                                         digits = 1
                                         while data.decode()[4+digits].isdigit():
                                                 digits += 1
-                                                print('MULTIPLE DIGITS')
 
                                         print('EXECUTING', data.decode()[:4+digits])
                                         execute_task(data.decode(),s,digits)
 
 
-                                else :
-                                        #print data
-                                        sys.stdout.write(data.decode())
-                                        prompt()
-
                         #user entered a message
-                        else :
-                                msg = sys.stdin.readline().replace('\n','')
-                                s.send(str.encode(msg))
-                                prompt()
+                        # else :
+                        #         msg = sys.stdin.readline().replace('\n','')
+                        #         s.send(str.encode(msg))
+                        #         # prompt()

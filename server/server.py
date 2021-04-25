@@ -19,9 +19,9 @@ def update_queue():
         conn.close()
 
 
-        print("===================BEFORE UPDATING===================")
-        print(queued_tasks)
-        print("=====================================================")
+        # print("===================BEFORE UPDATING===================")
+        # print(queued_tasks)
+        # print("=====================================================")
         priority = len(queued_tasks)-1
         id = task_user_map[queued_tasks[len(queued_tasks)-1]]
         for i in range(len(queued_tasks)-2, -1, -1):
@@ -35,9 +35,9 @@ def update_queue():
                 # queued_tasks[0], queued_tasks[priority] = queued_tasks[priority], queued_tasks[0]
                 queued_tasks.insert(0,queued_tasks.pop(priority))
 
-        print("===================AFTER UPDATING====================")
-        print(queued_tasks)
-        print("=====================================================")
+        # print("===================AFTER UPDATING====================")
+        # print(queued_tasks)
+        # print("=====================================================")
 
 def update_exec_times(task_dir, time):
         user_id = task_user_map[task_dir]
@@ -67,7 +67,6 @@ def remove_datafile(submit_file, task_dir):
         os.chdir(current)
 
 def job_status(sock):
-        print('Listing running and queued tasks')
         message = "JOB-status\nACTIVE:\n"
         if len(running_tasks) == 0:
                 message += "    NO TASKS ARE RUNNING RIGHT NOW.\n"
@@ -110,7 +109,7 @@ def send_results(task_dir, submit_file, execution_sock):
         update_exec_times(task_dir, exec_time)
 
         if user_return in CONNECTIONS:
-                send_email(user_id, task_dir, exec_time)
+                # send_email(user_id, task_dir, exec_time)
                 running_tasks.pop(execution_sock.getpeername())
                 busy_connections.remove(execution_sock)
                 AVAIL_CONNECTIONS.append(execution_sock)
@@ -118,7 +117,7 @@ def send_results(task_dir, submit_file, execution_sock):
                 del task_user_map[task_dir]
                 user_return.send(str.encode("DONE"+task_dir))
         else:
-                send_email(user_id, task_dir, exec_time)
+                # send_email(user_id, task_dir, exec_time)
                 running_tasks.pop(execution_sock.getpeername())
                 start_time = execution_time[task_dir]
                 execution_time[task_dir] = time.time() - start_time
@@ -267,7 +266,6 @@ def broadcast_data (sock, message):
 def clients_status (sock,curr_addr):
         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
                 try:
-                        print("try to send empty addresses")
                         sock.send(str.encode("a \n--------------------\nNO CLIENTS CONNECTED"))
                 except:
                         sock.close()
@@ -351,7 +349,11 @@ def send_email(user_id, task_dir, exec_time):
                 break
         conn.close()
         port = 465 # FOR SSL
-        password = "mik@sdev1"
+
+        # PASSWORD OF SENDER EMAIL:
+        password = ""
+        # password = "emailsenderpassword"
+
         # Create a secure SSL context
         context = ssl.create_default_context()
         message = """\
@@ -386,7 +388,7 @@ if __name__ == "__main__":
         statistics = {}
         RECV_BUFFER = 4096 # Advisable to keep it as an exponent of 2
         PORT = 5002
-        host_addr = ("0.0.0.0",PORT)
+        host_addr = ("localhost",PORT)
         control_sock = None
         control_clients = {}
         task_user_map = {}
@@ -398,7 +400,7 @@ if __name__ == "__main__":
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind(("0.0.0.0", PORT))
+        server_socket.bind(("localhost", PORT))
         server_socket.listen(10)
 
 
@@ -420,7 +422,6 @@ if __name__ == "__main__":
                                 CONNECTIONS.append(sockfd)
                                 AVAIL_CONNECTIONS.append(sockfd)
                                 active_addr.append(addr)
-                                print("Client (%s, %s) connected" % addr)
 
 
                         #Some incoming message from a client
@@ -434,13 +435,11 @@ if __name__ == "__main__":
                                         sock.send(str.encode("error"))
                                 if data:
                                         if data.decode() == 'a':
-                                                print("getting a command")
                                                 addr_curr = sock.getpeername()
                                                 clients_status(sock, addr_curr)
 
 
                                         if data.decode().startswith('SUBMIT'):
-                                                print(sock.getpeername())
                                                 if control_sock is None:
                                                         control_sock = sock
 
@@ -497,14 +496,12 @@ if __name__ == "__main__":
                                                         sock.send(str.encode("RETRIEVE"))
 
                                         elif data.decode().startswith('CLIENT'):
-                                                print("CLIENT CONNECTED, ITS STATS:\n")
                                                 if len(client_no) == 0:
                                                         client_no[sock] = 1
                                                 else:
                                                         client_no[sock] = next(filterfalse(set(client_no.values()).__contains__, count(1)))
                                                 statistics[sock] = "Client #"+str(client_no[sock])+":\n"+data.decode()[6:]
                                                 addr_to_number[sock.getpeername()] = client_no[sock]
-                                                print(statistics[sock])
                                                 execute_queued()
 
                                         elif data.decode().startswith('EXISTING_CONTROL'):
@@ -518,7 +515,6 @@ if __name__ == "__main__":
                                         elif data.decode() == 's':
                                                 return_string = '\n'.join(statistics.values())
                                                 try:
-                                                        print("try to send s")
                                                         sock.send(str.encode("s \n"+return_string))
                                                 except:
                                                         print("unsuccessful")
@@ -533,7 +529,6 @@ if __name__ == "__main__":
 
                                 else:
                                         broadcast_data(sock, "Client (%s, %s) is offline" % addr)
-                                        print("Client (%s, %s) is offline" % addr)
                                         if (sock == control_sock):
                                                 control_sock = None
                                         sock.close()
@@ -542,7 +537,6 @@ if __name__ == "__main__":
                                                 AVAIL_CONNECTIONS.remove(sock)
                                         statistics.pop(sock, None)
                                         client_no.pop(sock,None)
-                                        print(active_addr)
                                         active_addr.remove(addr)
                                         continue
         server_socket.close()

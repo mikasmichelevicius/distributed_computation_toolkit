@@ -1,3 +1,6 @@
-addr
---------------------
-NO CLIENTS CONNECTED
+jobs
+
+ACTIVE:
+    NO TASKS ARE RUNNING RIGHT NOW.
+QUEUE:
+    NO TASKS ARE QUEUED RIGHT NOW.
