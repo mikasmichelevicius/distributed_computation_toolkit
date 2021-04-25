@@ -62,6 +62,9 @@ def send_file(sub_file, s):
         #         s.send(str.encode("EMAIL"+email))
 
 
+
+# ===================================
+# The function is probably not being used?
 def get_file():
         ftp = FTP('')
         ftp.connect('localhost',1026)
@@ -81,20 +84,26 @@ def save_id(id):
         conn.close()
 
 def prompt() :
-        sys.stdout.write('\nClients addresses - write a')
-        sys.stdout.write('\nStatistics of clients - write s')
-        sys.stdout.write('\nStatus of tasks - JOB-status')
-        sys.stdout.write('\nTask submission - SUBMIT filename.txt\n')
+        if enable_cli:
+                sys.stdout.write('\nConnected clients - write a')
+                sys.stdout.write('\nStatistics of clients - write s')
+                sys.stdout.write('\nQueue and running tasks - JOB-status')
+                sys.stdout.write('\nTask submission - SUBMIT filename.txt')
+                sys.stdout.write('\nTo disable command-line usage - write disable\n')
+        else:
+                sys.stdout.write('\nTo enable command-line usage - write enable\n')
         sys.stdout.flush()
 
 #main function
 if __name__ == "__main__":
 
+        enable_cli = False
+
         tasks_count = 1
         client_id = None
 
         if(len(sys.argv) < 3) :
-                print('Usage : python telnet.py hostname port')
+                print('Usage : python control_client.py hostname port')
                 sys.exit()
 
         host = sys.argv[1]
@@ -159,7 +168,13 @@ if __name__ == "__main__":
                                 elif (data.decode().startswith('a')):
                                         with open("fileB.txt", "w") as fileB:
                                                 fileB.write("addr\n"+data.decode()[3:])
-                                        # sys.stdout.write(data.decode()[1:])
+                                        if enable_cli:
+                                                value = data.decode()[5:]
+                                                if not value.startswith("---"):
+                                                        sys.stdout.write("\n--------------------\n")
+                                                sys.stdout.write(data.decode()[3:])
+                                                sys.stdout.write("\n--------------------")
+                                                prompt()
                                         # prompt()
                                 elif data.decode().startswith('DONE'):
                                         get_results(data.decode()[4:],s)
@@ -173,7 +188,18 @@ if __name__ == "__main__":
                                         with open("fileB.txt", "w") as fileB:
                                                 fileB.write("stats\n"+data.decode()[3:])
                                                 fileB.flush()
-                                        # sys.stdout.write(data.decode()[1:])
+                                        if enable_cli:
+                                                value = data.decode()
+                                                sys.stdout.write("\n--------------------")
+                                                if len(value) == 3:
+                                                        sys.stdout.write("\nNO CLIENTS CONNECTED")
+                                                else:
+                                                        sys.stdout.write("\n"+data.decode()[3:])
+                                                if len(value) == 3:
+                                                        sys.stdout.write("\n--------------------")
+                                                else:
+                                                        sys.stdout.write("--------------------")
+                                                prompt()
 
                                 elif data.decode().startswith('RETURN'):
                                         get_results(data.decode()[6:],s)
@@ -181,7 +207,11 @@ if __name__ == "__main__":
                                 elif data.decode().startswith('JOB-status'):
                                         with open("fileB.txt", "w") as fileB:
                                                 fileB.write("jobs\n"+data.decode()[10:])
-                                        # sys.stdout.write(data.decode()[10:])
+                                        if enable_cli:
+                                                sys.stdout.write("\n--------------------")
+                                                sys.stdout.write(data.decode()[10:])
+                                                sys.stdout.write("\n--------------------")
+                                                prompt()
                                 elif data.decode().startswith('RETRIEVE'):
                                         print("\n\n     RESULTS OF FINISHED TASKS ARE BEING RETRIEVED FROM SERVER\n")
                                         s.send(str.encode("RETRIEVE"))
@@ -212,9 +242,32 @@ if __name__ == "__main__":
                                         # is_valid = does_compile(msg[7:])
                                         is_valid = True
                                         if is_valid:
-                                                send_file(msg[7:])
+                                                send_file(msg[7:],s)
                                                 s.send(str.encode(msg))
 
-                                else:
+                                elif (msg.startswith('enable')):
+                                        enable_cli = True
+                                        prompt()
+
+                                elif (msg.startswith('disable')):
+                                        enable_cli = False
+                                        prompt()
+
+                                elif (msg == 's'):
                                         s.send(str.encode(msg))
+                                        # prompt()
+
+                                elif (msg == 'a'):
+                                        s.send(str.encode(msg))
+                                        # prompt()
+
+                                elif (msg.startswith('JOB-status')):
+                                        s.send(str.encode(msg))
+                                        # prompt()
+
+                                else:
+                                        print('\n--------------------------------------')
+                                        print('Input is incorrect. Please try again.')
+                                        print('--------------------------------------')
+                                        # s.send(str.encode(msg))
                                         prompt()

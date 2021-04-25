@@ -79,7 +79,7 @@ def job_status(sock):
 
         message += "QUEUE:\n"
         if len(queued_tasks) == 0:
-                message += "    NO TASKS ARE QUEUED RIGHT NOW.\n"
+                message += "    NO TASKS ARE QUEUED RIGHT NOW."
         else:
                 for task in queued_tasks:
                         message += "    "+str(task)+" IS WAITING IN THE QUEUE.\n"
@@ -263,48 +263,12 @@ def broadcast_data (sock, message):
                                 AVAIL_CONNECTIONS.remove(socket)
                                 active_addr.remove(addr)
 
-# def get_statistics(sock):
-#         print("get stats")
-#         for socket in CONNECTIONS:
-#                 if socket != server_socket and socket != sock:
-#                         try:
-#                                 socket.send(str.encode('s'))
-#                         except:
-#                                 addr = socket.getpeername()
-#                                 socket.close()
-#                                 CONNECTIONS.remove(socket)
-#                                 AVAIL_CONNECTIONS.remove(socket)
-#                                 active_addr.remove(addr)
-
-# def send_statistics(message,addr_curr):
-#         print("send stats")
-#         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
-#                 try:
-#                         sock.send(str.encode("s \n____________________\nNO CLIENTS CONNECTED"))
-#                 except:
-#                         sock.close()
-#                         CONNECTIONS.remove(socket)
-#                         AVAIL_CONNECTIONS.remove(socket)
-#                         active_addr.remove(curr_addr)
-#                 return
-#
-#         # if addr_curr not in statistics and addr_curr != control_sock.getpeername():
-#         #         statistics[addr_curr] = message
-#         message = "\n".join(statistics.values())
-#         try:
-#                 control_sock.send(str.encode(message))
-#         except:
-#                 addr = control_sock.getpeername()
-#                 control_sock.close()
-#                 CONNECTIONS.remove(control_sock)
-#                 AVAIL_CONNECTIONS.remove(control_sock)
-#                 active_addr.remove(addr)
 
 def clients_status (sock,curr_addr):
         if (len(AVAIL_CONNECTIONS) < 1) and (len(busy_connections) == 0):
                 try:
                         print("try to send empty addresses")
-                        sock.send(str.encode("a \n____________________\nNO CLIENTS CONNECTED"))
+                        sock.send(str.encode("a \n--------------------\nNO CLIENTS CONNECTED"))
                 except:
                         sock.close()
                         CONNECTIONS.remove(socket)
@@ -500,11 +464,6 @@ if __name__ == "__main__":
                                         elif data.decode().startswith('FINISH'):
                                                 finish_task(data.decode()[6:])
 
-
-                                        # elif data.decode().startswith('ret_s'):
-                                        #         print("adding to statistics")
-                                        #         statistics[sock.getpeername()] = data.decode()[5:]
-                                        #         send_statistics(data.decode()[5:],sock.getpeername())
 
                                         elif data.decode().startswith('RETRIEVE'):
                                                 get_waiting_results()

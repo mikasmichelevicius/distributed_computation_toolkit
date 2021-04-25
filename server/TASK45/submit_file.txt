@@ -1,3 +1,0 @@
-executable = calc_pi.py
-email = michelevicius.mikas@gmail.com
-client = Any

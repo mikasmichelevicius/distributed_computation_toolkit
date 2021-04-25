@@ -1,3 +1,0 @@
-executable = control_client.py
-data = data.csv
-email = michelevicius.mikas@gmail.com
