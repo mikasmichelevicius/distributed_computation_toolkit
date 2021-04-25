@@ -62,21 +62,6 @@ def send_file(sub_file, s):
         #         s.send(str.encode("EMAIL"+email))
 
 
-
-# ===================================
-# The function is probably not being used?
-def get_file():
-        ftp = FTP('')
-        ftp.connect('localhost',1026)
-        ftp.login()
-        ftp.cwd('') #replace with your directory
-        #ftp.retrlines('LIST')
-        filename = 'kazkas.txt' #replace with your file in the directory ('directory_name')
-        localfile = open(filename, 'wb')
-        ftp.retrbinary('RETR ' + filename, localfile.write, 1024)
-        ftp.quit()
-        localfile.close()
-
 def save_id(id):
         conn = sqlite3.connect('db_control.db')
         conn.execute("INSERT INTO UserID VALUES ("+str(id)+")")
