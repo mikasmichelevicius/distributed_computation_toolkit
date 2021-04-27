@@ -3,8 +3,3 @@ Client #1:
 RAM available:3
 Number of CPU cores:2, Thread(s):2
 CUDA compatible GPU: No
-
-Client #2:
-RAM available:3
-Number of CPU cores:2, Thread(s):2
-CUDA compatible GPU: No
