@@ -1,3 +1,0 @@
-executable = executable.py
-data = data.csv
-email = michelevicius.mikas@gmail.com

@@ -1,2 +1,4 @@
 
 executable = job2.py
+
+data = data.csv

@@ -42,7 +42,9 @@ python control_client.py localhost 5002
 ```
 
 Then, enable the command-line interface usage by typing ***enable*** command and enter the:
-***SUBMIT submission_file1.txt*** (Since the copied documents from *job1* directory contains a submission file called *submission_file1.txt*, *submission_file2.txt* for *job2*, etc). Once the Worker Node finishes executing the submitted job, the Control Client program output will display notification that the job was completed and will display the name of the directory where the results of the task will be stored.
+***SUBMIT submission_file1.txt*** (Since the copied documents from *job1* directory contains a submission file called *submission_file1.txt*, *submission_file2.txt* for *job2*, etc). Once the Worker Node finishes executing the submitted job, the Control Client program output will display notification that the job was completed and will display the name of the directory where the results of the task will be stored.  
+
+Examples of the completed output of the test jobs can be found in directories *TASK66-69/* in *website/* directory.
 
 
 ## Web Interface Usage

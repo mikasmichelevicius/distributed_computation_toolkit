@@ -73,13 +73,11 @@ def execute_task(submit_msg,s,digits):
                         if 'data' in line:
                                 data = line.split()[2]
 
-        # run_program = "python " + task_dir+"/"+filename + " > " + task_dir+"/stdout.txt"
         run_program = "python " +filename + " > stdout.txt"
         start_time = time.time()
         proc = subprocess.Popen(run_program, stderr=subprocess.PIPE, shell=True)
         total_time = time.time() - start_time
         (out, err) = proc.communicate()
-        # err_file = open(task_dir+"/stderr.txt", "w")
         err_file = open("stderr.txt", "w")
         if proc.returncode == 0:
                 status = "Successful"
@@ -89,7 +87,6 @@ def execute_task(submit_msg,s,digits):
         if err:
                 err_file.write(err.decode())
         err_file.close()
-        # run_file = open(task_dir+"/runtime.txt", "w")
         run_file = open("runtime.txt", "w")
         run_file.write(str("{:.2f}".format(time.time() - start_time))+" SECONDS")
         run_file.close()
@@ -119,7 +116,6 @@ def return_stats():
                                 break
 
         work_dir = os.getcwd()
-        # stat = shutil.disk_usage(work_dir)
 
         stat = ""
         gpus = tf.config.list_physical_devices('GPU')
@@ -128,14 +124,10 @@ def return_stats():
         else:
                 stat += "CUDA compatible GPU: No"
 
-        # stats_details = "Memory in GB:\nTotal:"+str(int(int(total)/(1024*1024)))+", Free:"+str(int(int(free)/(1024*1024)))+", Available:"+str(int(int(available)/(1024*1024)))+"\n"
-        # stats_details += "CPU info:\nCore(s):"+cores+", Thread(s):"+str(int(int(siblings)/int(cores)))+", Core(s) with hyper-threading:"+siblings
-        # stats_details += "\nDisk usage in KB:\n"+str(stat)+"\n"
 
         stats_details = "RAM available:"+str(int(int(available)/(1024*1024)))+"\n"
         stats_details += "Number of CPU cores:"+cores+", Thread(s):"+str(int(int(siblings)/int(cores)))
         stats_details += "\n"+str(stat)+"\n"
-        # s.send(str.encode(stats_details))
         return stats_details
 
 #main function
@@ -164,7 +156,6 @@ if __name__ == "__main__":
         print('Connected to the server')
 
         while 1:
-                # socket_list = [sys.stdin, s]
                 socket_list = [s]
 
                 # Get the list sockets which are readable
@@ -187,13 +178,6 @@ if __name__ == "__main__":
                                         digits = 1
                                         while data.decode()[4+digits].isdigit():
                                                 digits += 1
-
+                                        print("\n\n------------------------------")
                                         print('EXECUTING', data.decode()[:4+digits])
                                         execute_task(data.decode(),s,digits)
-
-
-                        #user entered a message
-                        # else :
-                        #         msg = sys.stdin.readline().replace('\n','')
-                        #         s.send(str.encode(msg))
-                        #         # prompt()

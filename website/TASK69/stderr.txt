@@ -1,0 +1,5 @@
+Program Execution Was Unsuccessful!
+Traceback (most recent call last):
+  File "/home/mikas/Documents/uni/year3project/complete/distributed_computation_toolkit/client/TASK69/job4.py", line 14, in <module>
+    print(spaces,strs[x])
+IndexError: string index out of range

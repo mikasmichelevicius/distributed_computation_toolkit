@@ -7,9 +7,9 @@ import time
 strs = "EXECUTING JOB"
 
 spaces = ""
-for x in range(len(strs)+1):
-    spaces += "  "
 for x in range(len(strs)):
+    spaces += "  "
+for x in range(len(strs)+1):
     time.sleep(1)
     print(spaces,strs[x])
     spaces = spaces[:-2]
